@@ -1,5 +1,5 @@
 [package]
-name = "zoker-parser"
+name = "zoker_parser"
 version = "0.1.0"
 authors = ["HyeockJinKim <kherootz@gmail.com>"]
 edition = "2018"
