@@ -31,4 +31,3 @@ fn test_location_new_line() {
     assert_eq!(loc.row(), 4);
     assert_eq!(loc.column(), 1);
 }
-
