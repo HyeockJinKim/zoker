@@ -1,9 +1,17 @@
 [package]
 name = "zoker_parser"
+build = "build.rs"
 version = "0.1.0"
 authors = ["HyeockJinKim <kherootz@gmail.com>"]
 edition = "2018"
+repository = "https://github.com/HyeockJinKim/zoker-parser"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[build-dependencies]
+lalrpop = "0.17.2"
+
 [dependencies]
+lalrpop-util = "0.17.2"
+regex = "1.3.4"
