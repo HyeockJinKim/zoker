@@ -1,0 +1,61 @@
+use std::str::FromStr;
+
+grammar;
+
+// All `pub`s are used for dev env.
+pub Program: i32 = {
+    ArithmeticExpression1,
+};
+
+/// Separate Arithmetic Expression grammar for priority
+///
+/// Priority
+/// 1.
+/// ** (power operator)
+/// 2.
+/// * (multiplication), / (division), % (modulus)
+/// 3.
+/// + (addition), - (subtraction)
+pub ArithmeticExpression1: i32 = {
+    <l:ArithmeticExpression1> "+" <r:ArithmeticExpression2> => l + r,
+    <l:ArithmeticExpression1> "-" <r:ArithmeticExpression2> => l - r,
+    ArithmeticExpression2,
+};
+
+pub ArithmeticExpression2: i32 = {
+    <l:ArithmeticExpression2> "*" <r:PowerExpression> => l * r,
+    <l:ArithmeticExpression2> "/" <r:PowerExpression> => l / r,
+    <l:ArithmeticExpression2> "%" <r:PowerExpression> => l % r,
+    PowerExpression,
+};
+
+pub PowerExpression: i32 = {
+    // TODO : The power operation should be done with 'l' as base and 'r' as exponent.
+    <l:Value> "**" <r:Value> => l,
+    UnaryExpression,
+};
+
+pub UnaryExpression: i32 = {
+    // TODO: ++, -- operation must increment value.
+    <v:Terminal> "++" => v,
+    <v:Terminal> "--" => v,
+    "++" <v:Terminal> => v+1,
+    "--" <v:Terminal> => v-1,
+    "+" <v:Value> => v,
+    "-" <v:Value> => -v,
+    Value,
+};
+
+pub Value: i32 = {
+    Terminal,
+    "(" <ArithmeticExpression1> ")",
+};
+
+pub Terminal: i32 = {
+    Number,
+    // Ident,
+};
+
+Number: i32 = {
+    r"[0-9]+" => i32::from_str(<>).unwrap(),
+};
