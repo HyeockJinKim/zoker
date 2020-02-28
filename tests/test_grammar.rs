@@ -1,7 +1,6 @@
-#[macro_use]
 extern crate lalrpop_util;
 
-lalrpop_mod!(pub zoker);
+use zoker_parser::zoker;
 
 #[test]
 fn test_program_parser() {

@@ -1,10 +1,11 @@
 use std::str::FromStr;
+use crate::ast;
 
 grammar;
 
 // All `pub`s are used for dev env.
-pub Program: i32 = {
-    ArithmeticExpression1,
+pub Program: ast::Program = {
+    ArithmeticExpression1 => ast::Program::Expression(<>),
 };
 
 /// Separate Arithmetic Expression grammar for priority
@@ -16,46 +17,97 @@ pub Program: i32 = {
 /// * (multiplication), / (division), % (modulus)
 /// 3.
 /// + (addition), - (subtraction)
-pub ArithmeticExpression1: i32 = {
-    <l:ArithmeticExpression1> "+" <r:ArithmeticExpression2> => l + r,
-    <l:ArithmeticExpression1> "-" <r:ArithmeticExpression2> => l - r,
+pub ArithmeticExpression1: ast::Expression = {
+    <l:ArithmeticExpression1> <op:ArithmeticOperator1> <r:ArithmeticExpression2> => ast::Expression {
+        node: ast::ExpressionType::BinaryExpression {
+            left: Box::new(l),
+            operator: op,
+            right: Box::new(r),
+        }
+    },
     ArithmeticExpression2,
 };
 
-pub ArithmeticExpression2: i32 = {
-    <l:ArithmeticExpression2> "*" <r:PowerExpression> => l * r,
-    <l:ArithmeticExpression2> "/" <r:PowerExpression> => l / r,
-    <l:ArithmeticExpression2> "%" <r:PowerExpression> => l % r,
+ArithmeticOperator1: ast::BinaryOperator = {
+    "+" => ast::BinaryOperator::Add,
+    "-" => ast::BinaryOperator::Sub,
+};
+
+pub ArithmeticExpression2: ast::Expression = {
+    <l:ArithmeticExpression2> <op:ArithmeticOperator2> <r:PowerExpression> => ast::Expression {
+        node: ast::ExpressionType::BinaryExpression {
+            left: Box::new(l),
+            operator: op,
+            right: Box::new(r),
+        }
+    },
     PowerExpression,
 };
 
-pub PowerExpression: i32 = {
+ArithmeticOperator2: ast::BinaryOperator = {
+    "*" => ast::BinaryOperator::Mul,
+    "/" => ast::BinaryOperator::Div,
+    "%" => ast::BinaryOperator::Mod,
+};
+
+pub PowerExpression: ast::Expression = {
     // TODO : The power operation should be done with 'l' as base and 'r' as exponent.
-    <l:Value> "**" <r:Value> => l,
+    <l:Value> <op:PowerOperator> <r:Value> => ast::Expression {
+        node: ast::ExpressionType::BinaryExpression {
+            left: Box::new(l),
+            operator: op,
+            right: Box::new(r),
+        }
+    },
     UnaryExpression,
 };
 
-pub UnaryExpression: i32 = {
+PowerOperator: ast::BinaryOperator = {
+    "**" => ast::BinaryOperator::Pow,
+};
+
+pub UnaryExpression: ast::Expression = {
     // TODO: ++, -- operation must increment value.
-    <v:Terminal> "++" => v,
-    <v:Terminal> "--" => v,
-    "++" <v:Terminal> => v+1,
-    "--" <v:Terminal> => v-1,
-    "+" <v:Value> => v,
-    "-" <v:Value> => -v,
+    <v:Terminal> <op:PostfixUnaryOperator> => ast::Expression {
+        node: ast::ExpressionType::UnaryExpression {
+            operator: op,
+            expression: Box::new(v),
+        }
+    },
+    <op:PrefixUnaryOperator> <v:Terminal> => ast::Expression {
+        node: ast::ExpressionType::UnaryExpression {
+            operator: op,
+            expression: Box::new(v),
+        }
+    },
     Value,
 };
 
-pub Value: i32 = {
+PrefixUnaryOperator: ast::UnaryOperator = {
+    "++" => ast::UnaryOperator::PrefixPlusPlus,
+    "--" => ast::UnaryOperator::PrefixMinusMinus,
+    "+" => ast::UnaryOperator::Plus,
+    "-" => ast::UnaryOperator::Minus,
+};
+
+PostfixUnaryOperator: ast::UnaryOperator = {
+    "++" => ast::UnaryOperator::PostfixPlusPlus,
+    "--" => ast::UnaryOperator::PostfixMinusMinus,
+};
+
+pub Value: ast::Expression = {
     Terminal,
     "(" <ArithmeticExpression1> ")",
 };
 
-pub Terminal: i32 = {
+pub Terminal: ast::Expression = {
     Number,
-    // Ident,
+    // Identifier,
 };
 
-Number: i32 = {
-    r"[0-9]+" => i32::from_str(<>).unwrap(),
+// TODO: Customize the lexer and change it to read the Number value from the lexer.
+Number: ast::Expression = {
+    r"[0-9]+" => ast::Expression {
+        node: ast::ExpressionType::Number { value: i32::from_str(<>).unwrap() }
+    },
 };
