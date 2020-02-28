@@ -1,7 +1,7 @@
 # Zoker
 > The zoker is a tool you can use to apply `zero knowledge proofs` to smart contracts.
 
-![Rust](https://github.com/HyeockJinKim/zoker-parser/workflows/Rust/badge.svg)
+![CI](https://github.com/HyeockJinKim/zoker-parser/workflows/CI/badge.svg)
 
 `Zoker` is a tool for parsing grammars using the [lalrpop][lalrpop] parser
 tool to generate zero knowledge proof circuits.
