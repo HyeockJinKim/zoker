@@ -75,7 +75,7 @@ fn test_arithmetic_expression_ast2() {
     use zoker::ArithmeticExpression1Parser as parser;
     let expr = parser::new().parse("66 + 22 * 44").unwrap();
 
-    // Obtain an AST of "(22 * 44) + 66".
+    // Obtain an AST of "66 + (22 * 44)".
     let bin_expr = check_bin_expr_in_expr(expr.node);
     assert!(bin_expr.is_ok());
     let bin_expr = bin_expr.unwrap();

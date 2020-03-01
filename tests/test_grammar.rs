@@ -1,5 +1,3 @@
-extern crate lalrpop_util;
-
 use zoker_parser::zoker;
 
 #[test]
