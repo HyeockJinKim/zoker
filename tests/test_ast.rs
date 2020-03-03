@@ -6,14 +6,7 @@ use zoker_parser::{ast, error, zoker};
 
 fn check_bin_expr_in_expr(
     expression: ast::ExpressionType,
-) -> Result<
-    (
-        ast::ExpressionType,
-        ast::BinaryOperator,
-        ast::ExpressionType,
-    ),
-    error::ParseError,
-> {
+) -> Result<(ast::ExpressionType, ast::Operator, ast::ExpressionType), error::ParseError> {
     match expression {
         ast::ExpressionType::BinaryExpression {
             left: l,
@@ -46,7 +39,7 @@ fn test_arithmetic_expression_ast1() {
     let bin_expr = bin_expr.unwrap();
 
     // Test l:expr, op:*, r:66
-    assert_matches!(bin_expr.1, ast::BinaryOperator::Add);
+    assert_matches!(bin_expr.1, ast::Operator::Add);
 
     // Check 66
     let l = check_number_in_expression(bin_expr.2);
@@ -62,7 +55,7 @@ fn test_arithmetic_expression_ast1() {
     assert!(l.is_ok());
     assert_eq!(l.unwrap(), 22);
 
-    assert_matches!(bin_expr.1, ast::BinaryOperator::Mul);
+    assert_matches!(bin_expr.1, ast::Operator::Mul);
 
     // Check 44
     let r = check_number_in_expression(bin_expr.2);
@@ -81,7 +74,7 @@ fn test_arithmetic_expression_ast2() {
     let bin_expr = bin_expr.unwrap();
 
     // Test l:66, op:*, r:expr
-    assert_matches!(bin_expr.1, ast::BinaryOperator::Add);
+    assert_matches!(bin_expr.1, ast::Operator::Add);
 
     // Check 66
     let l = check_number_in_expression(bin_expr.0);
@@ -97,7 +90,7 @@ fn test_arithmetic_expression_ast2() {
     assert!(l.is_ok());
     assert_eq!(l.unwrap(), 22);
 
-    assert_matches!(bin_expr.1, ast::BinaryOperator::Mul);
+    assert_matches!(bin_expr.1, ast::Operator::Mul);
 
     // Check 44
     let r = check_number_in_expression(bin_expr.2);

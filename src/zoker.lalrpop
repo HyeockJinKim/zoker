@@ -28,9 +28,9 @@ pub ArithmeticExpression1: ast::Expression = {
     ArithmeticExpression2,
 };
 
-ArithmeticOperator1: ast::BinaryOperator = {
-    "+" => ast::BinaryOperator::Add,
-    "-" => ast::BinaryOperator::Sub,
+ArithmeticOperator1: ast::Operator = {
+    "+" => ast::Operator::Add,
+    "-" => ast::Operator::Sub,
 };
 
 pub ArithmeticExpression2: ast::Expression = {
@@ -44,10 +44,10 @@ pub ArithmeticExpression2: ast::Expression = {
     PowerExpression,
 };
 
-ArithmeticOperator2: ast::BinaryOperator = {
-    "*" => ast::BinaryOperator::Mul,
-    "/" => ast::BinaryOperator::Div,
-    "%" => ast::BinaryOperator::Mod,
+ArithmeticOperator2: ast::Operator = {
+    "*" => ast::Operator::Mul,
+    "/" => ast::Operator::Div,
+    "%" => ast::Operator::Mod,
 };
 
 pub PowerExpression: ast::Expression = {
@@ -62,8 +62,8 @@ pub PowerExpression: ast::Expression = {
     UnaryExpression,
 };
 
-PowerOperator: ast::BinaryOperator = {
-    "**" => ast::BinaryOperator::Pow,
+PowerOperator: ast::Operator = {
+    "**" => ast::Operator::Pow,
 };
 
 pub UnaryExpression: ast::Expression = {
@@ -83,16 +83,16 @@ pub UnaryExpression: ast::Expression = {
     Value,
 };
 
-PrefixUnaryOperator: ast::UnaryOperator = {
-    "++" => ast::UnaryOperator::PrefixPlusPlus,
-    "--" => ast::UnaryOperator::PrefixMinusMinus,
-    "+" => ast::UnaryOperator::Plus,
-    "-" => ast::UnaryOperator::Minus,
+PrefixUnaryOperator: ast::Operator = {
+    "++" => ast::Operator::PrefixPlusPlus,
+    "--" => ast::Operator::PrefixMinusMinus,
+    "+" => ast::Operator::Plus,
+    "-" => ast::Operator::Minus,
 };
 
-PostfixUnaryOperator: ast::UnaryOperator = {
-    "++" => ast::UnaryOperator::PostfixPlusPlus,
-    "--" => ast::UnaryOperator::PostfixMinusMinus,
+PostfixUnaryOperator: ast::Operator = {
+    "++" => ast::Operator::PostfixPlusPlus,
+    "--" => ast::Operator::PostfixMinusMinus,
 };
 
 pub Value: ast::Expression = {

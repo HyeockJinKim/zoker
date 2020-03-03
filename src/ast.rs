@@ -18,11 +18,11 @@ pub type Expression = Located<ExpressionType>;
 pub enum ExpressionType {
     BinaryExpression {
         left: Box<Expression>,
-        operator: BinaryOperator,
+        operator: Operator,
         right: Box<Expression>,
     },
     UnaryExpression {
-        operator: UnaryOperator,
+        operator: Operator,
         expression: Box<Expression>,
     },
     Number {
@@ -31,7 +31,7 @@ pub enum ExpressionType {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum BinaryOperator {
+pub enum Operator {
     // Arithmetic Operator
     Add,
     Sub,
@@ -41,10 +41,8 @@ pub enum BinaryOperator {
 
     // Power Operator
     Pow,
-}
 
-#[derive(Debug, PartialEq)]
-pub enum UnaryOperator {
+    // Unary Operator
     Plus,
     Minus,
 
