@@ -1,11 +1,10 @@
-use std::convert::TryInto;
 use crate::ast;
-use std::cell::RefCell;
+use std::convert::TryInto;
 
 pub struct PrintAST {
     repr: String,
     size: u32,
-    children: RefCell<Vec<PrintAST>>
+    children: Vec<PrintAST>,
 }
 //
 // fn program_to_str(node: &ast::Program) -> PrintAST {
@@ -20,12 +19,12 @@ pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
         ast::ExpressionType::Number { value: v } => {
             let s = format!("[ Number : {} ] ", v);
             let size = s.len().try_into().unwrap();
-            PrintAST{
+            PrintAST {
                 repr: s,
                 size,
-                children: RefCell::new(vec![]),
+                children: vec![],
             }
-        },
+        }
         ast::ExpressionType::UnaryExpression {
             operator: op,
             expression: expr,
@@ -34,10 +33,12 @@ pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
             let expression = expr_to_str(&expr.node);
             let s = String::from("[ UnaryExpression ] ");
             let size = u32::max(s.len().try_into().unwrap(), operator.size + expression.size);
-            let children = if &ast::Operator::PostfixPlusPlus == op || &ast::Operator::PostfixMinusMinus == op {
-                RefCell::new(vec![operator, expression])
+            let children = if &ast::Operator::PostfixPlusPlus == op
+                || &ast::Operator::PostfixMinusMinus == op
+            {
+                vec![operator, expression]
             } else {
-                RefCell::new(vec![expression, operator])
+                vec![expression, operator]
             };
 
             PrintAST {
@@ -60,7 +61,7 @@ pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
             PrintAST {
                 repr: s,
                 size: u32::max(size, left.size + operator.size + right.size),
-                children: RefCell::new(vec![left, operator, right]),
+                children: vec![left, operator, right],
             }
         }
     }
@@ -71,62 +72,62 @@ pub fn operator_to_str(node: &ast::Operator) -> PrintAST {
         ast::Operator::Add => PrintAST {
             repr: String::from("[ binop : + ] "),
             size: 14,
-            children: RefCell::new(vec![]),
+            children: vec![],
         },
         ast::Operator::Sub => PrintAST {
             repr: String::from("[ binop : - ] "),
             size: 14,
-            children: RefCell::new(vec![]),
+            children: vec![],
         },
         ast::Operator::Mul => PrintAST {
             repr: String::from("[ binop : * ] "),
             size: 14,
-            children: RefCell::new(vec![]),
+            children: vec![],
         },
         ast::Operator::Div => PrintAST {
             repr: String::from("[ binop : / ] "),
             size: 14,
-            children: RefCell::new(vec![]),
+            children: vec![],
         },
         ast::Operator::Mod => PrintAST {
             repr: String::from("[ binop : % ] "),
             size: 14,
-            children: RefCell::new(vec![]),
+            children: vec![],
         },
         ast::Operator::Pow => PrintAST {
             repr: String::from("[ op : pow ] "),
             size: 13,
-            children: RefCell::new(vec![]),
+            children: vec![],
         },
         ast::Operator::Plus => PrintAST {
             repr: String::from("[ uop : + ] "),
             size: 12,
-            children: RefCell::new(vec![]),
+            children: vec![],
         },
         ast::Operator::Minus => PrintAST {
             repr: String::from("[ uop : - ] "),
             size: 12,
-            children: RefCell::new(vec![]),
+            children: vec![],
         },
         ast::Operator::PrefixPlusPlus => PrintAST {
             repr: String::from("[ pre-op : ++ ] "),
             size: 16,
-            children: RefCell::new(vec![]),
+            children: vec![],
         },
         ast::Operator::PrefixMinusMinus => PrintAST {
             repr: String::from("[ pre-op : -- ] "),
             size: 16,
-            children: RefCell::new(vec![]),
+            children: vec![],
         },
         ast::Operator::PostfixPlusPlus => PrintAST {
             repr: String::from("[ post-op : ++ ] "),
             size: 17,
-            children: RefCell::new(vec![]),
+            children: vec![],
         },
         ast::Operator::PostfixMinusMinus => PrintAST {
             repr: String::from("[ post-op : -- ] "),
             size: 17,
-            children: RefCell::new(vec![]),
+            children: vec![],
         },
     }
 }
@@ -134,5 +135,14 @@ pub fn operator_to_str(node: &ast::Operator) -> PrintAST {
 impl PrintAST {
     pub fn str(&self) -> &String {
         &self.repr
+    }
+    pub fn child_nodes(&self) -> String {
+        let mut str = String::new();
+        let children = &self.children;
+        for child in children {
+            let node = &child.repr;
+            str.push_str(&node);
+        }
+        str
     }
 }
