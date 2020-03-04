@@ -5,6 +5,14 @@ pub enum Program {
     Expression(Expression),
 }
 
+impl Program {
+    pub fn to_child(&self) -> &Located<ExpressionType> {
+        match self {
+            Program::Expression(expr) => expr,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct Located<T> {
     // TODO: After customizing the lexer, get the location value.

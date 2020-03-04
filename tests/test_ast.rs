@@ -2,7 +2,7 @@
 #[macro_use]
 extern crate assert_matches;
 
-use zoker_parser::{ast, error, zoker};
+use zoker_parser::{ast, error, print, zoker};
 
 fn check_bin_expr_in_expr(
     expression: ast::ExpressionType,
@@ -96,4 +96,13 @@ fn test_arithmetic_expression_ast2() {
     let r = check_number_in_expression(bin_expr.2);
     assert!(r.is_ok());
     assert_eq!(r.unwrap(), 44);
+}
+
+#[test]
+fn test_print_number() {
+    use zoker::TerminalParser as parser;
+    let num = parser::new().parse("66").unwrap();
+
+    let ast = print::expr_to_str(&num.node);
+    assert_eq!(ast.str(), "[ Number : 66 ] ")
 }
