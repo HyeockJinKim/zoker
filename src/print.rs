@@ -3,10 +3,10 @@ use std::convert::TryInto;
 
 pub struct PrintAST {
     repr: String,
-    size: u32,
+    size: usize,
     children: Vec<PrintAST>,
 }
-//
+
 // fn program_to_str(node: &ast::Program) -> PrintAST {
 //     let child = node.to_child();
 //     match child.node {
@@ -18,7 +18,7 @@ pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
     match node {
         ast::ExpressionType::Number { value: v } => {
             let s = format!("[ Number : {} ] ", v);
-            let size = s.len().try_into().unwrap();
+            let size = s.len();
             PrintAST {
                 repr: s,
                 size,
@@ -32,7 +32,7 @@ pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
             let operator = operator_to_str(&op);
             let expression = expr_to_str(&expr.node);
             let s = String::from("[ UnaryExpression ] ");
-            let size = u32::max(s.len().try_into().unwrap(), operator.size + expression.size);
+            let size = usize::max(s.len(), operator.size + expression.size);
             let children = if &ast::Operator::PostfixPlusPlus == op
                 || &ast::Operator::PostfixMinusMinus == op
             {
@@ -60,7 +60,7 @@ pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
 
             PrintAST {
                 repr: s,
-                size: u32::max(size, left.size + operator.size + right.size),
+                size: usize::max(size, left.size + operator.size + right.size),
                 children: vec![left, operator, right],
             }
         }
@@ -136,13 +136,33 @@ impl PrintAST {
     pub fn str(&self) -> &String {
         &self.repr
     }
-    pub fn child_nodes(&self) -> String {
+    pub fn print_ast(&self) -> String {
         let mut str = String::new();
-        let children = &self.children;
-        for child in children {
-            let node = &child.repr;
-            str.push_str(&node);
+        let mut nodes = vec![self];
+
+        loop {
+            let children = nodes.iter().fold(vec![], |mut v, &ast| {
+                for child in &ast.children {
+                    v.push(child);
+                }
+                v
+            });
+            for node in &nodes {
+                str.push_str(&node.node_str());
+            }
+            str.push_str("\n");
+            if children.is_empty() {
+                break;
+            }
+            nodes = children;
         }
+
         str
+    }
+
+    fn node_str(&self) -> String {
+        let margin_size = (self.size - self.repr.len()) / 2;
+        let margin = " ".repeat(margin_size);
+        format!("{}{}{}", margin, &self.repr, margin)
     }
 }

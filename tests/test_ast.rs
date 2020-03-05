@@ -104,5 +104,16 @@ fn test_print_number() {
     let num = parser::new().parse("66").unwrap();
 
     let ast = print::expr_to_str(&num.node);
-    assert_eq!(ast.str(), "[ Number : 66 ] ")
+    assert_eq!(ast.str(), "[ Number : 66 ] ");
+    assert_eq!(ast.print_ast(), "[ Number : 66 ] \n");
+}
+
+#[test]
+fn test_print_arithmetic_expression() {
+    use zoker::ArithmeticExpression1Parser as parser;
+    let num = parser::new().parse("22 + 66").unwrap();
+
+    let ast = print::expr_to_str(&num.node);
+    assert_eq!(ast.str(), "[ BinaryExpression ] ");
+    assert_eq!(ast.print_ast(), "            [ BinaryExpression ]             \n[ Number : 22 ] [ binop : + ] [ Number : 66 ] \n");
 }
