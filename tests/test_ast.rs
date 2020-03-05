@@ -109,11 +109,31 @@ fn test_print_number() {
 }
 
 #[test]
-fn test_print_arithmetic_expression() {
+fn test_print_arithmetic_expression1() {
     use zoker::ArithmeticExpression1Parser as parser;
     let num = parser::new().parse("22 + 66").unwrap();
 
     let ast = print::expr_to_str(&num.node);
     assert_eq!(ast.str(), "[ BinaryExpression ] ");
     assert_eq!(ast.print_ast(), "            [ BinaryExpression ]             \n[ Number : 22 ] [ binop : + ] [ Number : 66 ] \n");
+}
+
+#[test]
+fn test_print_arithmetic_expression2() {
+    use zoker::ArithmeticExpression1Parser as parser;
+    let num = parser::new().parse("22 + 66 * 33").unwrap();
+
+    let ast = print::expr_to_str(&num.node);
+    assert_eq!(ast.str(), "[ BinaryExpression ] ");
+    assert_eq!(ast.print_ast(), "                           [ BinaryExpression ]                            \n[ Number : 22 ] [ binop : + ]             [ BinaryExpression ]             \n                              [ Number : 66 ] [ binop : * ] [ Number : 33 ] \n");
+}
+
+#[test]
+fn test_print_arithmetic_expression3() {
+    use zoker::ArithmeticExpression1Parser as parser;
+    let num = parser::new().parse("22 * (1 + 2) - 66 * 33 % 3").unwrap();
+
+    let ast = print::expr_to_str(&num.node);
+    println!("{}", ast.print_ast());
+    assert_eq!(ast.print_ast(), "                                                                       [ BinaryExpression ]                                                                        \n                          [ BinaryExpression ]                           [ binop : - ]                            [ BinaryExpression ]                            \n[ Number : 22 ] [ binop : * ]            [ BinaryExpression ]                                      [ BinaryExpression ]             [ binop : % ] [ Number : 3 ] \n                              [ Number : 1 ] [ binop : + ] [ Number : 2 ]               [ Number : 66 ] [ binop : * ] [ Number : 33 ]                              \n");
 }

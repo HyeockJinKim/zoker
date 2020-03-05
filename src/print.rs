@@ -138,20 +138,28 @@ impl PrintAST {
     }
     pub fn print_ast(&self) -> String {
         let mut str = String::new();
-        let mut nodes = vec![self];
-
+        let mut nodes = vec![self.clone()];
         loop {
-            let children = nodes.iter().fold(vec![], |mut v, &ast| {
-                for child in &ast.children {
-                    v.push(child);
-                }
-                v
-            });
+            let mut is_empty = false;
+            let mut children = vec![];
             for node in &nodes {
                 str.push_str(&node.node_str());
+                if node.children.is_empty() {
+                    let empty_ast = PrintAST {
+                        repr: String::new(),
+                        size: node.size,
+                        children: vec![],
+                    };
+                    children.push(empty_ast);
+                } else {
+                    for child in node.children.clone() {
+                        is_empty = true;
+                        children.push(child);
+                    }
+                }
             }
             str.push_str("\n");
-            if children.is_empty() {
+            if !is_empty {
                 break;
             }
             nodes = children;
@@ -161,8 +169,22 @@ impl PrintAST {
     }
 
     fn node_str(&self) -> String {
-        let margin_size = (self.size - self.repr.len()) / 2;
-        let margin = " ".repeat(margin_size);
-        format!("{}{}{}", margin, &self.repr, margin)
+        if self.repr.is_empty() {
+            " ".repeat(self.size)
+        } else {
+            let margin_size = (self.size - self.repr.len()) / 2;
+            let margin = " ".repeat(margin_size);
+            format!("{}{}{}", margin, &self.repr, margin)
+        }
+    }
+}
+
+impl Clone for PrintAST {
+    fn clone(&self) -> PrintAST {
+        PrintAST {
+            repr: String::from(self.str()),
+            size: self.size,
+            children: self.children.clone(),
+        }
     }
 }
