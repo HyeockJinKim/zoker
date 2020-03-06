@@ -24,6 +24,11 @@ pub type Expression = Located<ExpressionType>;
 
 #[derive(Debug, PartialEq)]
 pub enum ExpressionType {
+    AssignExpression {
+        left: Box<Expression>,
+        operator: Operator,
+        right: Box<Expression>,
+    },
     BinaryExpression {
         left: Box<Expression>,
         operator: Operator,
@@ -35,6 +40,9 @@ pub enum ExpressionType {
     },
     Number {
         value: i32,
+    },
+    Identifier {
+        value: String,
     },
 }
 
@@ -59,4 +67,19 @@ pub enum Operator {
     PrefixMinusMinus,
     PostfixPlusPlus,
     PostfixMinusMinus,
+
+    // Assign operator
+    Assign,
+
+    // Augmented Assign Operator
+    BitAndAssign,
+    BitOrAssign,
+    XorAssign,
+    LShiftAssign,
+    RShiftAssign,
+    AddAssign,
+    SubAssign,
+    MulAssign,
+    DivAssign,
+    ModAssign,
 }

@@ -11,6 +11,19 @@ fn test_program_parser() {
 }
 
 #[test]
+fn test_assign_expression_parser() {
+    use zoker::AssignExpressionParser as parser;
+
+    assert!(parser::new().parse("a = 1").is_ok());
+    assert!(parser::new().parse("a = b").is_ok());
+    assert!(parser::new().parse("2 = 11 - 3").is_err());
+    assert!(parser::new().parse("a = 11 - 3").is_ok());
+    assert!(parser::new().parse("a = 3%2").is_ok());
+    assert!(parser::new().parse("a = b = 3").is_ok());
+    assert!(parser::new().parse("a = 3 = 2").is_err());
+}
+
+#[test]
 fn test_arithmetic_expression1_parser() {
     use zoker::ArithmeticExpression1Parser as parser;
 
@@ -74,4 +87,7 @@ fn test_terminal_parser() {
     assert!(parser::new().parse("121").is_ok());
     assert!(parser::new().parse("121+1").is_err());
     assert!(parser::new().parse("(11)").is_err());
+    assert!(parser::new().parse("a").is_ok());
+    assert!(parser::new().parse("a_1").is_ok());
+    assert!(parser::new().parse("A9").is_ok());
 }

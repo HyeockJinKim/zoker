@@ -16,13 +16,38 @@ pub struct PrintAST {
 
 pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
     match node {
-        ast::ExpressionType::Number { value: v } => {
-            let s = format!("[ Number : {} ] ", v);
-            let size = s.len();
+        ast::ExpressionType::AssignExpression {
+            left: l,
+            operator: op,
+            right: r,
+        } => {
+            let left = expr_to_str(&l.node);
+            let operator = operator_to_str(op);
+            let right = expr_to_str(&r.node);
+            let s = String::from("[ AssignExpression ] ");
+            let size = s.len().try_into().unwrap();
+
             PrintAST {
                 repr: s,
-                size,
-                children: vec![],
+                size: usize::max(size, left.size + operator.size + right.size),
+                children: vec![left, operator, right],
+            }
+        }
+        ast::ExpressionType::BinaryExpression {
+            left: l,
+            operator: op,
+            right: r,
+        } => {
+            let left = expr_to_str(&l.node);
+            let operator = operator_to_str(op);
+            let right = expr_to_str(&r.node);
+            let s = String::from("[ BinaryExpression ] ");
+            let size = s.len().try_into().unwrap();
+
+            PrintAST {
+                repr: s,
+                size: usize::max(size, left.size + operator.size + right.size),
+                children: vec![left, operator, right],
             }
         }
         ast::ExpressionType::UnaryExpression {
@@ -47,21 +72,22 @@ pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
                 children,
             }
         }
-        ast::ExpressionType::BinaryExpression {
-            left: l,
-            operator: op,
-            right: r,
-        } => {
-            let left = expr_to_str(&l.node);
-            let operator = operator_to_str(op);
-            let right = expr_to_str(&r.node);
-            let s = String::from("[ BinaryExpression ] ");
-            let size = s.len().try_into().unwrap();
-
+        ast::ExpressionType::Number { value: v } => {
+            let s = format!("[ Number : {} ] ", v);
+            let size = s.len();
             PrintAST {
                 repr: s,
-                size: usize::max(size, left.size + operator.size + right.size),
-                children: vec![left, operator, right],
+                size,
+                children: vec![],
+            }
+        }
+        ast::ExpressionType::Identifier { value: v } => {
+            let s = format!("[ Identifier : {} ] ", v);
+            let size = s.len();
+            PrintAST {
+                repr: s,
+                size,
+                children: vec![],
             }
         }
     }
@@ -127,6 +153,61 @@ pub fn operator_to_str(node: &ast::Operator) -> PrintAST {
         ast::Operator::PostfixMinusMinus => PrintAST {
             repr: String::from("[ post-op : -- ] "),
             size: 17,
+            children: vec![],
+        },
+        ast::Operator::Assign => PrintAST {
+            repr: String::from("[ assign-op : = ] "),
+            size: 18,
+            children: vec![],
+        },
+        ast::Operator::BitAndAssign => PrintAST {
+            repr: String::from("[ assign-op : &= ] "),
+            size: 19,
+            children: vec![],
+        },
+        ast::Operator::BitOrAssign => PrintAST {
+            repr: String::from("[ assign-op : |= ] "),
+            size: 19,
+            children: vec![],
+        },
+        ast::Operator::XorAssign => PrintAST {
+            repr: String::from("[ assign-op : ^= ] "),
+            size: 19,
+            children: vec![],
+        },
+        ast::Operator::LShiftAssign => PrintAST {
+            repr: String::from("[ assign-op : <<= ] "),
+            size: 20,
+            children: vec![],
+        },
+        ast::Operator::RShiftAssign => PrintAST {
+            repr: String::from("[ assign-op : >>= ] "),
+            size: 20,
+            children: vec![],
+        },
+        ast::Operator::AddAssign => PrintAST {
+            repr: String::from("[ assign-op : += ] "),
+            size: 19,
+            children: vec![],
+        },
+        ast::Operator::SubAssign => PrintAST {
+            repr: String::from("[ assign-op : -= ] "),
+            size: 19,
+            children: vec![],
+        },
+        ast::Operator::MulAssign => PrintAST {
+            repr: String::from("[ assign-op : *= ] "),
+            size: 19,
+            children: vec![],
+        },
+        ast::Operator::DivAssign => PrintAST {
+            repr: String::from("[ assign-op : /= ] "),
+            size: 19,
+            children: vec![],
+        },
+        ast::Operator::ModAssign => PrintAST {
+            repr: String::from("[ assign-op : %= ] "),
+            size: 19,
             children: vec![],
         },
     }

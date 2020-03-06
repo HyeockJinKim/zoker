@@ -5,7 +5,36 @@ grammar;
 
 // All `pub`s are used for dev env.
 pub Program: ast::Program = {
-    ArithmeticExpression1 => ast::Program::Expression(<>),
+    Expression => ast::Program::Expression(<>),
+};
+
+pub Expression: ast::Expression = {
+    ArithmeticExpression1,
+    AssignExpression,
+};
+
+pub AssignExpression: ast::Expression = {
+    <l:Identifier> <op:AssignOperator> <r:Expression> => ast::Expression {
+        node: ast::ExpressionType::AssignExpression {
+            left: Box::new(l),
+            operator: op,
+            right: Box::new(r),
+        }
+    },
+};
+
+AssignOperator: ast::Operator = {
+    "=" => ast::Operator::Assign,
+    "&=" => ast::Operator::BitAndAssign,
+    "|=" => ast::Operator::BitOrAssign,
+    "^=" => ast::Operator::XorAssign,
+    "<<=" => ast::Operator::LShiftAssign,
+    ">>=" => ast::Operator::RShiftAssign,
+    "+=" => ast::Operator::AddAssign,
+    "-=" => ast::Operator::SubAssign,
+    "*=" => ast::Operator::MulAssign,
+    "/=" => ast::Operator::DivAssign,
+    "%=" => ast::Operator::ModAssign,
 };
 
 /// Separate Arithmetic Expression grammar for priority
@@ -102,12 +131,18 @@ pub Value: ast::Expression = {
 
 pub Terminal: ast::Expression = {
     Number,
-    // Identifier,
+    Identifier,
 };
 
 // TODO: Customize the lexer and change it to read the Number value from the lexer.
 Number: ast::Expression = {
     r"[0-9]+" => ast::Expression {
         node: ast::ExpressionType::Number { value: i32::from_str(<>).unwrap() }
+    },
+};
+
+Identifier: ast::Expression = {
+    r"[a-zA-Z][_a-zA-Z0-9]*" => ast::Expression {
+        node: ast::ExpressionType::Identifier { value: String::from(<>) }
     },
 };
