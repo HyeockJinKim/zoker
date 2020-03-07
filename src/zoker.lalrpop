@@ -9,7 +9,11 @@ pub Program: ast::Program = {
 };
 
 pub Expression: ast::Expression = {
-    ArithmeticExpression1,
+    BinaryExpression,
+};
+
+BinaryExpression: ast::Expression = {
+    ComparisonExpression1,
     AssignExpression,
 };
 
@@ -35,6 +39,40 @@ AssignOperator: ast::Operator = {
     "*=" => ast::Operator::MulAssign,
     "/=" => ast::Operator::DivAssign,
     "%=" => ast::Operator::ModAssign,
+};
+
+pub ComparisonExpression1: ast::Expression = {
+    <l:ComparisonExpression1> <op:ComparisonOperator1> <r:ComparisonExpression2> => ast::Expression {
+        node: ast::ExpressionType::BinaryExpression {
+            left: Box::new(l),
+            operator: op,
+            right: Box::new(r),
+        }
+    },
+    ComparisonExpression2,
+};
+
+ComparisonOperator1: ast::Operator = {
+    "==" => ast::Operator::Eq,
+    "!=" => ast::Operator::NotEq,
+};
+
+pub ComparisonExpression2: ast::Expression = {
+    <l:ComparisonExpression2> <op:ComparisonOperator2> <r:ArithmeticExpression1> => ast::Expression {
+        node: ast::ExpressionType::BinaryExpression {
+            left: Box::new(l),
+            operator: op,
+            right: Box::new(r),
+        }
+    },
+    ArithmeticExpression1,
+};
+
+ComparisonOperator2: ast::Operator = {
+    "<" => ast::Operator::Lt,
+    "<=" => ast::Operator::Le,
+    ">" => ast::Operator::Gt,
+    ">=" => ast::Operator::Ge,
 };
 
 /// Separate Arithmetic Expression grammar for priority
@@ -117,6 +155,7 @@ PrefixUnaryOperator: ast::Operator = {
     "--" => ast::Operator::PrefixMinusMinus,
     "+" => ast::Operator::Plus,
     "-" => ast::Operator::Minus,
+    "!" => ast::Operator::Not,
 };
 
 PostfixUnaryOperator: ast::Operator = {
@@ -126,7 +165,7 @@ PostfixUnaryOperator: ast::Operator = {
 
 pub Value: ast::Expression = {
     Terminal,
-    "(" <ArithmeticExpression1> ")",
+    "(" <Expression> ")",
 };
 
 pub Terminal: ast::Expression = {

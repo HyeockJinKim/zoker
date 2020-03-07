@@ -135,6 +135,11 @@ pub fn operator_to_str(node: &ast::Operator) -> PrintAST {
             size: 12,
             children: vec![],
         },
+        ast::Operator::Not => PrintAST {
+            repr: String::from("[ uop : ! ] "),
+            size: 12,
+            children: vec![],
+        },
         ast::Operator::PrefixPlusPlus => PrintAST {
             repr: String::from("[ pre-op : ++ ] "),
             size: 16,
@@ -208,6 +213,46 @@ pub fn operator_to_str(node: &ast::Operator) -> PrintAST {
         ast::Operator::ModAssign => PrintAST {
             repr: String::from("[ assign-op : %= ] "),
             size: 19,
+            children: vec![],
+        },
+        ast::Operator::Lt => PrintAST {
+            repr: String::from("[ compare-op : < ] "),
+            size: 19,
+            children: vec![],
+        },
+        ast::Operator::Gt => PrintAST {
+            repr: String::from("[ compare-op : > ] "),
+            size: 19,
+            children: vec![],
+        },
+        ast::Operator::Le => PrintAST {
+            repr: String::from("[ compare-op : <= ] "),
+            size: 20,
+            children: vec![],
+        },
+        ast::Operator::Ge => PrintAST {
+            repr: String::from("[ compare-op : >= ] "),
+            size: 20,
+            children: vec![],
+        },
+        ast::Operator::Eq => PrintAST {
+            repr: String::from("[ compare-op : == ] "),
+            size: 20,
+            children: vec![],
+        },
+        ast::Operator::NotEq => PrintAST {
+            repr: String::from("[ compare-op : != ] "),
+            size: 20,
+            children: vec![],
+        },
+        ast::Operator::And => PrintAST {
+            repr: String::from("[ logical-op : && ] "),
+            size: 20,
+            children: vec![],
+        },
+        ast::Operator::Or => PrintAST {
+            repr: String::from("[ logical-op : || ] "),
+            size: 20,
             children: vec![],
         },
     }

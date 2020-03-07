@@ -61,6 +61,7 @@ pub enum Operator {
     // Unary Operator
     Plus,
     Minus,
+    Not,
 
     // Increment Operator
     PrefixPlusPlus,
@@ -82,4 +83,16 @@ pub enum Operator {
     MulAssign,
     DivAssign,
     ModAssign,
+
+    // Comparison Operator
+    Lt,
+    Le,
+    Gt,
+    Ge,
+    Eq,
+    NotEq,
+
+    // Logical Operator
+    And,
+    Or,
 }

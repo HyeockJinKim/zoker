@@ -154,3 +154,12 @@ fn test_print_assign_expression2() {
     let ast = print::expr_to_str(&num.node);
     assert_eq!(ast.print_ast(), "                                  [ AssignExpression ]                                   \n[ Identifier : a ] [ assign-op : = ]                [ AssignExpression ]                \n                                     [ Identifier : b ] [ assign-op : = ] [ Number : 2 ] \n");
 }
+
+#[test]
+fn test_print_comparison_expression() {
+    use zoker::ComparisonExpression1Parser as parser;
+    let num = parser::new().parse("2 < a").unwrap();
+
+    let ast = print::expr_to_str(&num.node);
+    assert_eq!(ast.print_ast(), "                [ BinaryExpression ]                 \n[ Number : 2 ] [ compare-op : < ] [ Identifier : a ] \n");
+}
