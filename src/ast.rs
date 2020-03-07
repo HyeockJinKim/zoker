@@ -74,8 +74,8 @@ pub enum Operator {
 
     // Augmented Assign Operator
     BitAndAssign,
+    BitXorAssign,
     BitOrAssign,
-    XorAssign,
     LShiftAssign,
     RShiftAssign,
     AddAssign,
@@ -95,4 +95,9 @@ pub enum Operator {
     // Logical Operator
     And,
     Or,
+
+    // Bit Operator
+    BitAnd,
+    BitXor,
+    BitOr,
 }

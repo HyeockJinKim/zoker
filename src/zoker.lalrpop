@@ -12,8 +12,8 @@ pub Expression: ast::Expression = {
     BinaryExpression,
 };
 
-BinaryExpression: ast::Expression = {
-    ComparisonExpression1,
+pub BinaryExpression: ast::Expression = {
+    LogicalOrExpression,
     AssignExpression,
 };
 
@@ -31,7 +31,7 @@ AssignOperator: ast::Operator = {
     "=" => ast::Operator::Assign,
     "&=" => ast::Operator::BitAndAssign,
     "|=" => ast::Operator::BitOrAssign,
-    "^=" => ast::Operator::XorAssign,
+    "^=" => ast::Operator::BitXorAssign,
     "<<=" => ast::Operator::LShiftAssign,
     ">>=" => ast::Operator::RShiftAssign,
     "+=" => ast::Operator::AddAssign,
@@ -39,6 +39,61 @@ AssignOperator: ast::Operator = {
     "*=" => ast::Operator::MulAssign,
     "/=" => ast::Operator::DivAssign,
     "%=" => ast::Operator::ModAssign,
+};
+
+LogicalOrExpression: ast::Expression = {
+    <l:LogicalOrExpression> "||" <r:LogicalAndExpression> => ast::Expression {
+        node: ast::ExpressionType::BinaryExpression {
+            left: Box::new(l),
+            operator: ast::Operator::Or,
+            right: Box::new(r),
+        }
+    },
+    LogicalAndExpression,
+};
+
+LogicalAndExpression: ast::Expression = {
+    <l:LogicalAndExpression> "&&" <r:BitOrExpression> => ast::Expression {
+        node: ast::ExpressionType::BinaryExpression {
+            left: Box::new(l),
+            operator: ast::Operator::And,
+            right: Box::new(r),
+        }
+    },
+    BitOrExpression,
+};
+
+BitOrExpression: ast::Expression = {
+    <l:BitOrExpression> "|" <r:BitXorExpression> => ast::Expression {
+        node: ast::ExpressionType::BinaryExpression {
+            left: Box::new(l),
+            operator: ast::Operator::BitOr,
+            right: Box::new(r),
+        }
+    },
+    BitXorExpression,
+};
+
+BitXorExpression: ast::Expression = {
+    <l:BitXorExpression> "^" <r:BitAndExpression> => ast::Expression {
+        node: ast::ExpressionType::BinaryExpression {
+            left: Box::new(l),
+            operator: ast::Operator::BitXor,
+            right: Box::new(r),
+        }
+    },
+    BitAndExpression,
+};
+
+BitAndExpression: ast::Expression = {
+    <l:BitAndExpression> "&" <r:ComparisonExpression1> => ast::Expression {
+        node: ast::ExpressionType::BinaryExpression {
+            left: Box::new(l),
+            operator: ast::Operator::BitAnd,
+            right: Box::new(r),
+        }
+    },
+    ComparisonExpression1,
 };
 
 pub ComparisonExpression1: ast::Expression = {

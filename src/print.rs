@@ -170,13 +170,13 @@ pub fn operator_to_str(node: &ast::Operator) -> PrintAST {
             size: 19,
             children: vec![],
         },
-        ast::Operator::BitOrAssign => PrintAST {
-            repr: String::from("[ assign-op : |= ] "),
+        ast::Operator::BitXorAssign => PrintAST {
+            repr: String::from("[ assign-op : ^= ] "),
             size: 19,
             children: vec![],
         },
-        ast::Operator::XorAssign => PrintAST {
-            repr: String::from("[ assign-op : ^= ] "),
+        ast::Operator::BitOrAssign => PrintAST {
+            repr: String::from("[ assign-op : |= ] "),
             size: 19,
             children: vec![],
         },
@@ -253,6 +253,21 @@ pub fn operator_to_str(node: &ast::Operator) -> PrintAST {
         ast::Operator::Or => PrintAST {
             repr: String::from("[ logical-op : || ] "),
             size: 20,
+            children: vec![],
+        },
+        ast::Operator::BitAnd => PrintAST {
+            repr: String::from("[ bit-op : & ] "),
+            size: 15,
+            children: vec![],
+        },
+        ast::Operator::BitXor => PrintAST {
+            repr: String::from("[ bit-op : ^ ] "),
+            size: 15,
+            children: vec![],
+        },
+        ast::Operator::BitOr => PrintAST {
+            repr: String::from("[ bit-op : | ] "),
+            size: 15,
             children: vec![],
         },
     }

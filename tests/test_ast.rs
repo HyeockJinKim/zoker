@@ -156,10 +156,21 @@ fn test_print_assign_expression2() {
 }
 
 #[test]
-fn test_print_comparison_expression() {
+fn test_print_comparison_expression1() {
     use zoker::ComparisonExpression1Parser as parser;
     let num = parser::new().parse("2 < a").unwrap();
 
     let ast = print::expr_to_str(&num.node);
     assert_eq!(ast.print_ast(), "                [ BinaryExpression ]                 \n[ Number : 2 ] [ compare-op : < ] [ Identifier : a ] \n");
+}
+
+#[test]
+fn test_print_comparison_expression2() {
+    use zoker::ComparisonExpression1Parser as parser;
+    let num = parser::new()
+        .parse("(a + 2 >= 3) == (2 < a && b < c)")
+        .unwrap();
+
+    let ast = print::expr_to_str(&num.node);
+    assert_eq!(ast.print_ast(), "                                                                                                          [ BinaryExpression ]                                                                                                           \n                               [ BinaryExpression ]                                [ compare-op : == ]                                                       [ BinaryExpression ]                                                       \n             [ BinaryExpression ]              [ compare-op : >= ] [ Number : 3 ]                                     [ BinaryExpression ]                 [ logical-op : && ]                   [ BinaryExpression ]                   \n[ Identifier : a ] [ binop : + ] [ Number : 2 ]                                                        [ Number : 2 ] [ compare-op : < ] [ Identifier : a ]                     [ Identifier : b ] [ compare-op : < ] [ Identifier : c ] \n");
 }
