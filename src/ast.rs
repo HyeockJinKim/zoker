@@ -20,6 +20,28 @@ pub struct Located<T> {
     pub node: T,
 }
 
+pub type Statement = Located<StatementType>;
+
+pub enum StatementType {
+    IfStatement {
+        condition: Box<Expression>,
+        if_statement: Box<Statement>,
+        else_statement: Option<Box<Statement>>,
+    },
+    // ForStatement {
+    //     initializer: Box<Expression>,
+    //     condition: Box<Expression>,
+    //     update: Box<Expression>,
+    //     statements: Vec<Statement>,
+    // },
+    // ForEachStatement {
+    //     iterator: Box<Expression>,
+    //     vector: Box<Expression>,
+    //     statements: Vec<Statement>,
+    // },
+    Expression(Expression),
+}
+
 pub type Expression = Located<ExpressionType>;
 
 #[derive(Debug, PartialEq)]

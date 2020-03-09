@@ -8,6 +8,31 @@ pub Program: ast::Program = {
     Expression => ast::Program::Expression(<>),
 };
 
+pub Statements: Vec<ast::Statement> = {
+    <mut stmts:Statements> <stmt:Statement> ";" => {
+        stmts.push(stmt);
+        stmts
+    },
+};
+
+pub Statement: ast::Statement = {
+    // TODO: If statement is ambiguous now.
+    // IfStatement,
+    Expression => ast::Statement {
+        node: ast::StatementType::Expression(<>),
+    },
+};
+
+IfStatement: ast::Statement = {
+    "if" "(" <expr:Expression> ")" <if_stmt:Statement> <else_stmt:("else" Statement)?> => ast::Statement {
+        node: ast::StatementType::IfStatement {
+            condition: Box::new(expr),
+            if_statement: Box::new(if_stmt),
+            else_statement: Some(Box::new(else_stmt.unwrap().1)),
+        }
+    },
+};
+
 pub Expression: ast::Expression = {
     BinaryExpression,
 };
