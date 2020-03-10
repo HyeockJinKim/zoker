@@ -41,12 +41,12 @@ pub Expression: ast::Expression = {
     BinaryExpression,
 };
 
-pub BinaryExpression: ast::Expression = {
+BinaryExpression: ast::Expression = {
     LogicalOrExpression,
     AssignExpression,
 };
 
-pub AssignExpression: ast::Expression = {
+AssignExpression: ast::Expression = {
     <l:Identifier> <op:AssignOperator> <r:Expression> => ast::Expression {
         node: ast::ExpressionType::AssignExpression {
             left: Box::new(l),
@@ -125,7 +125,7 @@ BitAndExpression: ast::Expression = {
     ComparisonExpression1,
 };
 
-pub ComparisonExpression1: ast::Expression = {
+ComparisonExpression1: ast::Expression = {
     <l:ComparisonExpression1> <op:ComparisonOperator1> <r:ComparisonExpression2> => ast::Expression {
         node: ast::ExpressionType::BinaryExpression {
             left: Box::new(l),
@@ -141,7 +141,7 @@ ComparisonOperator1: ast::Operator = {
     "!=" => ast::Operator::NotEq,
 };
 
-pub ComparisonExpression2: ast::Expression = {
+ComparisonExpression2: ast::Expression = {
     <l:ComparisonExpression2> <op:ComparisonOperator2> <r:ArithmeticExpression1> => ast::Expression {
         node: ast::ExpressionType::BinaryExpression {
             left: Box::new(l),
@@ -168,7 +168,7 @@ ComparisonOperator2: ast::Operator = {
 /// * (multiplication), / (division), % (modulus)
 /// 3.
 /// + (addition), - (subtraction)
-pub ArithmeticExpression1: ast::Expression = {
+ArithmeticExpression1: ast::Expression = {
     <l:ArithmeticExpression1> <op:ArithmeticOperator1> <r:ArithmeticExpression2> => ast::Expression {
         node: ast::ExpressionType::BinaryExpression {
             left: Box::new(l),
@@ -184,7 +184,7 @@ ArithmeticOperator1: ast::Operator = {
     "-" => ast::Operator::Sub,
 };
 
-pub ArithmeticExpression2: ast::Expression = {
+ArithmeticExpression2: ast::Expression = {
     <l:ArithmeticExpression2> <op:ArithmeticOperator2> <r:PowerExpression> => ast::Expression {
         node: ast::ExpressionType::BinaryExpression {
             left: Box::new(l),
@@ -201,8 +201,7 @@ ArithmeticOperator2: ast::Operator = {
     "%" => ast::Operator::Mod,
 };
 
-pub PowerExpression: ast::Expression = {
-    // TODO : The power operation should be done with 'l' as base and 'r' as exponent.
+PowerExpression: ast::Expression = {
     <l:Value> <op:PowerOperator> <r:Value> => ast::Expression {
         node: ast::ExpressionType::BinaryExpression {
             left: Box::new(l),
@@ -217,8 +216,7 @@ PowerOperator: ast::Operator = {
     "**" => ast::Operator::Pow,
 };
 
-pub UnaryExpression: ast::Expression = {
-    // TODO: ++, -- operation must increment value.
+UnaryExpression: ast::Expression = {
     <v:Terminal> <op:PostfixUnaryOperator> => ast::Expression {
         node: ast::ExpressionType::UnaryExpression {
             operator: op,
@@ -247,17 +245,16 @@ PostfixUnaryOperator: ast::Operator = {
     "--" => ast::Operator::PostfixMinusMinus,
 };
 
-pub Value: ast::Expression = {
+Value: ast::Expression = {
     Terminal,
     "(" <Expression> ")",
 };
 
-pub Terminal: ast::Expression = {
+Terminal: ast::Expression = {
     Number,
     Identifier,
 };
 
-// TODO: Customize the lexer and change it to read the Number value from the lexer.
 Number: ast::Expression = {
     r"[0-9]+" => ast::Expression {
         node: ast::ExpressionType::Number { value: i32::from_str(<>).unwrap() }

@@ -37,12 +37,11 @@ fn test_if_statement_ast1() {
 
     let ast = print::stmt_to_str(&stmt.node);
     assert_eq!(ast.print_ast(), "                                                                   [ If-else Statement ]                                                                    \n                [ BinaryExpression ]                                [ AssignExpression ]                               [ AssignExpression ]                \n[ Identifier : a ] [ compare-op : < ] [ Number : 2 ] [ Identifier : a ] [ assign-op : = ] [ Number : 3 ] [ Identifier : a ] [ assign-op : = ] [ Number : 1 ] \n");
-    println!("{}", ast.print_ast());
 }
 
 #[test]
 fn test_arithmetic_expression_ast1() {
-    use zoker::ArithmeticExpression1Parser as parser;
+    use zoker::ExpressionParser as parser;
     let expr = parser::new().parse("22 * 44 + 66").unwrap();
 
     // Obtain an AST of "(22 * 44) + 66".
@@ -77,7 +76,7 @@ fn test_arithmetic_expression_ast1() {
 
 #[test]
 fn test_arithmetic_expression_ast2() {
-    use zoker::ArithmeticExpression1Parser as parser;
+    use zoker::ExpressionParser as parser;
     let expr = parser::new().parse("66 + 22 * 44").unwrap();
 
     // Obtain an AST of "66 + (22 * 44)".
@@ -112,7 +111,7 @@ fn test_arithmetic_expression_ast2() {
 
 #[test]
 fn test_print_number() {
-    use zoker::TerminalParser as parser;
+    use zoker::ExpressionParser as parser;
     let num = parser::new().parse("66").unwrap();
 
     let ast = print::expr_to_str(&num.node);
@@ -122,7 +121,7 @@ fn test_print_number() {
 
 #[test]
 fn test_print_arithmetic_expression1() {
-    use zoker::ArithmeticExpression1Parser as parser;
+    use zoker::ExpressionParser as parser;
     let num = parser::new().parse("22 + 66").unwrap();
 
     let ast = print::expr_to_str(&num.node);
@@ -132,7 +131,7 @@ fn test_print_arithmetic_expression1() {
 
 #[test]
 fn test_print_arithmetic_expression2() {
-    use zoker::ArithmeticExpression1Parser as parser;
+    use zoker::ExpressionParser as parser;
     let num = parser::new().parse("22 + 66 * 33").unwrap();
 
     let ast = print::expr_to_str(&num.node);
@@ -142,7 +141,7 @@ fn test_print_arithmetic_expression2() {
 
 #[test]
 fn test_print_arithmetic_expression3() {
-    use zoker::ArithmeticExpression1Parser as parser;
+    use zoker::ExpressionParser as parser;
     let num = parser::new().parse("22 * (1 + 2) - 66 * 33 % 3").unwrap();
 
     let ast = print::expr_to_str(&num.node);
@@ -151,7 +150,7 @@ fn test_print_arithmetic_expression3() {
 
 #[test]
 fn test_print_assign_expression() {
-    use zoker::AssignExpressionParser as parser;
+    use zoker::ExpressionParser as parser;
     let num = parser::new().parse("a = 22 + 3 * 2").unwrap();
 
     let ast = print::expr_to_str(&num.node);
@@ -160,7 +159,7 @@ fn test_print_assign_expression() {
 
 #[test]
 fn test_print_assign_expression2() {
-    use zoker::AssignExpressionParser as parser;
+    use zoker::ExpressionParser as parser;
     let num = parser::new().parse("a = b = 2").unwrap();
 
     let ast = print::expr_to_str(&num.node);
@@ -169,7 +168,7 @@ fn test_print_assign_expression2() {
 
 #[test]
 fn test_print_comparison_expression1() {
-    use zoker::ComparisonExpression1Parser as parser;
+    use zoker::ExpressionParser as parser;
     let num = parser::new().parse("2 < a").unwrap();
 
     let ast = print::expr_to_str(&num.node);
@@ -178,7 +177,7 @@ fn test_print_comparison_expression1() {
 
 #[test]
 fn test_print_comparison_expression2() {
-    use zoker::ComparisonExpression1Parser as parser;
+    use zoker::ExpressionParser as parser;
     let num = parser::new()
         .parse("(a + 2 >= 3) == (2 < a && b < c)")
         .unwrap();
