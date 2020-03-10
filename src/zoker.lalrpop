@@ -16,15 +16,19 @@ pub Statements: Vec<ast::Statement> = {
 };
 
 pub Statement: ast::Statement = {
-    // TODO: If statement is ambiguous now.
-    // IfStatement,
-    Expression => ast::Statement {
+    IfStatement,
+    CompoundStatement,
+    <Expression> ";" => ast::Statement {
         node: ast::StatementType::Expression(<>),
     },
 };
 
+CompoundStatement: ast::Statement = {
+    "{" <Statement> "}",
+};
+
 IfStatement: ast::Statement = {
-    "if" "(" <expr:Expression> ")" <if_stmt:Statement> <else_stmt:("else" Statement)?> => ast::Statement {
+    "if" "(" <expr:Expression> ")" <if_stmt:CompoundStatement> <else_stmt:("else" CompoundStatement)?> => ast::Statement {
         node: ast::StatementType::IfStatement {
             condition: Box::new(expr),
             if_statement: Box::new(if_stmt),

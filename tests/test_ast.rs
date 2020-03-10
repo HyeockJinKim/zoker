@@ -29,6 +29,18 @@ fn check_number_in_expression(expression: ast::ExpressionType) -> Result<i32, er
 }
 
 #[test]
+fn test_if_statement_ast1() {
+    use zoker::StatementParser as parser;
+    let stmt = parser::new()
+        .parse("if (a < 2) { a = 3; } else { a = 1; }")
+        .unwrap();
+
+    let ast = print::stmt_to_str(&stmt.node);
+    assert_eq!(ast.print_ast(), "                                                                   [ If-else Statement ]                                                                    \n                [ BinaryExpression ]                                [ AssignExpression ]                               [ AssignExpression ]                \n[ Identifier : a ] [ compare-op : < ] [ Number : 2 ] [ Identifier : a ] [ assign-op : = ] [ Number : 3 ] [ Identifier : a ] [ assign-op : = ] [ Number : 1 ] \n");
+    println!("{}", ast.print_ast());
+}
+
+#[test]
 fn test_arithmetic_expression_ast1() {
     use zoker::ArithmeticExpression1Parser as parser;
     let expr = parser::new().parse("22 * 44 + 66").unwrap();

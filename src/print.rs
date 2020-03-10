@@ -14,6 +14,45 @@ pub struct PrintAST {
 //     }
 // }
 
+pub fn stmt_to_str(node: &ast::StatementType) -> PrintAST {
+    match node {
+        ast::StatementType::IfStatement {
+            condition: cond,
+            if_statement: if_stmt,
+            else_statement: else_stmt,
+        } => {
+            let condition = expr_to_str(&cond.node);
+            let if_statement = stmt_to_str(&if_stmt.node);
+            let repr;
+            let size;
+            let children;
+            if let Some(else_statement) = else_stmt {
+                let else_statement = stmt_to_str(&else_statement.node);
+                repr = String::from("[ If-else Statement ] ");
+                size = usize::max(
+                    repr.len().try_into().unwrap(),
+                    condition.size + if_statement.size + else_statement.size,
+                );
+                children = vec![condition, if_statement, else_statement];
+            } else {
+                repr = String::from("[ If Statement ] ");
+                size = usize::max(
+                    repr.len().try_into().unwrap(),
+                    condition.size + if_statement.size,
+                );
+                children = vec![condition, if_statement];
+            }
+
+            PrintAST {
+                repr,
+                size,
+                children,
+            }
+        }
+        ast::StatementType::Expression(expr) => expr_to_str(&expr.node),
+    }
+}
+
 pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
     match node {
         ast::ExpressionType::AssignExpression {
