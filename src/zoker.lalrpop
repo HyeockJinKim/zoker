@@ -5,7 +5,21 @@ grammar;
 
 // All `pub`s are used for dev env.
 pub Program: ast::Program = {
-    Expression => ast::Program::Expression(<>),
+    <GlobalStatements> => ast::Program::GlobalStatements(<>),
+};
+
+pub GlobalStatements: Vec<ast::Statement> = {
+    <mut stmts:GlobalStatements> <stmt:GlobalStatement> ";" => {
+        stmts.push(stmt);
+        stmts
+    },
+};
+
+pub GlobalStatement: ast::Statement = {
+    // TODO: Another global statement should be added.
+    <Expression> ";" => ast::Statement {
+        node: ast::StatementType::Expression(<>),
+    },
 };
 
 pub Statements: Vec<ast::Statement> = {

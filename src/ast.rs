@@ -2,15 +2,7 @@
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, PartialEq)]
 pub enum Program {
-    Expression(Expression),
-}
-
-impl Program {
-    pub fn to_child(&self) -> &Located<ExpressionType> {
-        match self {
-            Program::Expression(expr) => expr,
-        }
-    }
+    GlobalStatements(Vec<Statement>),
 }
 
 #[derive(Debug, PartialEq)]
@@ -22,6 +14,7 @@ pub struct Located<T> {
 
 pub type Statement = Located<StatementType>;
 
+#[derive(Debug, PartialEq)]
 pub enum StatementType {
     IfStatement {
         condition: Box<Expression>,
