@@ -16,10 +16,9 @@ pub type Statement = Located<StatementType>;
 
 #[derive(Debug, PartialEq)]
 pub enum StatementType {
-    IfStatement {
-        condition: Box<Expression>,
-        if_statement: Box<Statement>,
-        else_statement: Option<Box<Statement>>,
+    CompoundStatement {
+        statements: Vec<Statement>,
+        return_value: Option<Box<Expression>>,
     },
     // ForStatement {
     //     initializer: Box<Expression>,
@@ -48,6 +47,11 @@ pub enum ExpressionType {
         left: Box<Expression>,
         operator: Operator,
         right: Box<Expression>,
+    },
+    IfExpression {
+        condition: Box<Expression>,
+        if_statement: Box<Statement>,
+        else_statement: Option<Box<Statement>>,
     },
     UnaryExpression {
         operator: Operator,

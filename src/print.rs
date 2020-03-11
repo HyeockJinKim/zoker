@@ -16,33 +16,22 @@ pub struct PrintAST {
 
 pub fn stmt_to_str(node: &ast::StatementType) -> PrintAST {
     match node {
-        ast::StatementType::IfStatement {
-            condition: cond,
-            if_statement: if_stmt,
-            else_statement: else_stmt,
+        ast::StatementType::CompoundStatement {
+            statements: stmts,
+            return_value: returns,
         } => {
-            let condition = expr_to_str(&cond.node);
-            let if_statement = stmt_to_str(&if_stmt.node);
-            let repr;
-            let size;
-            let children;
-            if let Some(else_statement) = else_stmt {
-                let else_statement = stmt_to_str(&else_statement.node);
-                repr = String::from("[ If-else Statement ] ");
-                size = usize::max(
-                    repr.len().try_into().unwrap(),
-                    condition.size + if_statement.size + else_statement.size,
-                );
-                children = vec![condition, if_statement, else_statement];
-            } else {
-                repr = String::from("[ If Statement ] ");
-                size = usize::max(
-                    repr.len().try_into().unwrap(),
-                    condition.size + if_statement.size,
-                );
-                children = vec![condition, if_statement];
+            let mut children = stmts
+                .iter()
+                .map(|stmt| stmt_to_str(&stmt.node))
+                .collect::<Vec<_>>();
+            let repr = String::from("[ Compound Statement ] ");
+            if let Some(return_value) = returns {
+                children.push(expr_to_str(&return_value.node))
             }
-
+            let size = usize::max(
+                repr.len().try_into().unwrap(),
+                children.iter().fold(0, |v, child| v + child.size),
+            );
             PrintAST {
                 repr,
                 size,
@@ -87,6 +76,39 @@ pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
                 repr: s,
                 size: usize::max(size, left.size + operator.size + right.size),
                 children: vec![left, operator, right],
+            }
+        }
+        ast::ExpressionType::IfExpression {
+            condition: cond,
+            if_statement: if_stmt,
+            else_statement: else_stmt,
+        } => {
+            let condition = expr_to_str(&cond.node);
+            let if_statement = stmt_to_str(&if_stmt.node);
+            let repr;
+            let size;
+            let children;
+            if let Some(else_statement) = else_stmt {
+                let else_statement = stmt_to_str(&else_statement.node);
+                repr = String::from("[ If-else Expression ] ");
+                size = usize::max(
+                    repr.len().try_into().unwrap(),
+                    condition.size + if_statement.size + else_statement.size,
+                );
+                children = vec![condition, if_statement, else_statement];
+            } else {
+                repr = String::from("[ If Expression ] ");
+                size = usize::max(
+                    repr.len().try_into().unwrap(),
+                    condition.size + if_statement.size,
+                );
+                children = vec![condition, if_statement];
+            }
+
+            PrintAST {
+                repr,
+                size,
+                children,
             }
         }
         ast::ExpressionType::UnaryExpression {

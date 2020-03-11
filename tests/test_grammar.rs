@@ -1,6 +1,15 @@
 use zoker_parser::zoker;
 
 #[test]
+fn test_if_statement_parser() {
+    use zoker::ExpressionParser as parser;
+
+    // assert!(parser::new().parse("if a < 2 { a = 1; } else { a = 0; }").is_ok());
+    assert!(parser::new().parse("if a < 2 { 1 } else { 0 }").is_ok());
+    assert!(parser::new().parse("b = if a < 2 { 1 } else { 0 }").is_ok());
+}
+
+#[test]
 fn test_assign_expression_parser() {
     use zoker::ExpressionParser as parser;
 

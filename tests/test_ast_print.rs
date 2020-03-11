@@ -81,9 +81,32 @@ fn test_print_comparison_expression2() {
 fn test_print_if_statement_ast1() {
     use zoker::StatementParser as parser;
     let stmt = parser::new()
-        .parse("if (a < 2) { a = 3; } else { a = 1; }")
+        .parse("if a < 2 { a = 3; } else { a = 1; }")
         .unwrap();
 
     let ast = print::stmt_to_str(&stmt.node);
-    assert_eq!(ast.print_ast(), "                                                                   [ If-else Statement ]                                                                    \n                [ BinaryExpression ]                                [ AssignExpression ]                               [ AssignExpression ]                \n[ Identifier : a ] [ compare-op : < ] [ Number : 2 ] [ Identifier : a ] [ assign-op : = ] [ Number : 3 ] [ Identifier : a ] [ assign-op : = ] [ Number : 1 ] \n");
+    assert_eq!(ast.print_ast(), "                                                                   [ If-else Expression ]                                                                    \n                [ BinaryExpression ]                               [ Compound Statement ]                             [ Compound Statement ]               \n[ Identifier : a ] [ compare-op : < ] [ Number : 2 ]                [ AssignExpression ]                               [ AssignExpression ]                \n                                                     [ Identifier : a ] [ assign-op : = ] [ Number : 3 ] [ Identifier : a ] [ assign-op : = ] [ Number : 1 ] \n");
+}
+
+#[test]
+fn test_print_if_statement_ast2() {
+    use zoker::StatementParser as parser;
+    let stmt = parser::new()
+        .parse("b = if a < 2 { 1 } else { 0 }")
+        .unwrap();
+
+    let ast = print::stmt_to_str(&stmt.node);
+    assert_eq!(ast.print_ast(), "                                                         [ AssignExpression ]                                                          \n[ Identifier : b ] [ assign-op : = ]                                       [ If-else Expression ]                                       \n                                                     [ BinaryExpression ]                 [ Compound Statement ] [ Compound Statement ] \n                                     [ Identifier : a ] [ compare-op : < ] [ Number : 2 ] [ Number : 1 ] [ Number : 0 ] \n");
+}
+
+#[test]
+fn test_print_if_statement_ast3() {
+    use zoker::StatementParser as parser;
+    let stmt = parser::new()
+        .parse("if a < 2 { a = 2; b = 2; }")
+        .unwrap();
+
+    let ast = print::stmt_to_str(&stmt.node);
+    println!("{}", ast.print_ast());
+    assert_eq!(ast.print_ast(), "                                                                     [ If Expression ]                                                                      \n                [ BinaryExpression ]                                                         [ Compound Statement ]                                         \n[ Identifier : a ] [ compare-op : < ] [ Number : 2 ]                [ AssignExpression ]                               [ AssignExpression ]                \n                                                     [ Identifier : a ] [ assign-op : = ] [ Number : 2 ] [ Identifier : b ] [ assign-op : = ] [ Number : 2 ] \n");
 }

@@ -8,11 +8,12 @@ pub Program: ast::Program = {
     <GlobalStatements> => ast::Program::GlobalStatements(<>),
 };
 
-pub GlobalStatements: Vec<ast::Statement> = {
-    <mut stmts:GlobalStatements> <stmt:GlobalStatement> ";" => {
+GlobalStatements: Vec<ast::Statement> = {
+    <mut stmts:GlobalStatements> <stmt:GlobalStatement> => {
         stmts.push(stmt);
         stmts
     },
+    <GlobalStatement> => vec![<>]
 };
 
 pub GlobalStatement: ast::Statement = {
@@ -22,31 +23,36 @@ pub GlobalStatement: ast::Statement = {
     },
 };
 
-pub Statements: Vec<ast::Statement> = {
+Statements: Vec<ast::Statement> = {
     <mut stmts:Statements> <stmt:Statement> ";" => {
         stmts.push(stmt);
         stmts
     },
+    <Statement> ";" => vec![<>]
 };
 
 pub Statement: ast::Statement = {
-    IfStatement,
     CompoundStatement,
-    <Expression> ";" => ast::Statement {
+    <Expression> => ast::Statement {
         node: ast::StatementType::Expression(<>),
     },
 };
 
 CompoundStatement: ast::Statement = {
-    "{" <Statement> "}",
+    "{" <stmt:Statements?> <return_value:Expression?>"}" => ast::Statement {
+        node: ast::StatementType::CompoundStatement {
+            statements: stmt.map_or(vec![], |x| x),
+            return_value: return_value.map_or(None, |x| Some(Box::new(x))),
+        }
+    },
 };
 
-IfStatement: ast::Statement = {
-    "if" "(" <expr:Expression> ")" <if_stmt:CompoundStatement> <else_stmt:("else" CompoundStatement)?> => ast::Statement {
-        node: ast::StatementType::IfStatement {
+IfExpression: ast::Expression = {
+    "if" <expr:Expression> <if_stmt:CompoundStatement> <else_stmt:("else" CompoundStatement)?> => ast::Expression {
+        node: ast::ExpressionType::IfExpression {
             condition: Box::new(expr),
             if_statement: Box::new(if_stmt),
-            else_statement: Some(Box::new(else_stmt.unwrap().1)),
+            else_statement: else_stmt.map_or(None, |x| Some(Box::new(x.1)))
         }
     },
 };
@@ -260,6 +266,7 @@ PostfixUnaryOperator: ast::Operator = {
 };
 
 Value: ast::Expression = {
+    IfExpression,
     Terminal,
     "(" <Expression> ")",
 };
