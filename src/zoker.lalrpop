@@ -4,6 +4,7 @@ use crate::ast;
 grammar;
 
 // All `pub`s are used for dev env.
+// Only consume Global Statements
 pub Program: ast::Program = {
     <GlobalStatements> => ast::Program::GlobalStatements(<>),
 };
@@ -17,10 +18,10 @@ GlobalStatements: Vec<ast::Statement> = {
 };
 
 pub GlobalStatement: ast::Statement = {
-    // TODO: Another global statement should be added.
     <Expression> ";" => ast::Statement {
         node: ast::StatementType::Expression(<>),
     },
+    // TODO: Function and contract should be added.
 };
 
 Statements: Vec<ast::Statement> = {
@@ -31,11 +32,18 @@ Statements: Vec<ast::Statement> = {
     <Statement> ";" => vec![<>]
 };
 
+/// Description for Statement
+/// Only consumed by function
+///
+/// Compound Statement
+/// { Statements }
+/// Expression
 pub Statement: ast::Statement = {
     CompoundStatement,
     <Expression> => ast::Statement {
         node: ast::StatementType::Expression(<>),
     },
+    // TODO: For statement should be added.
 };
 
 CompoundStatement: ast::Statement = {
@@ -61,6 +69,21 @@ pub Expression: ast::Expression = {
     BinaryExpression,
 };
 
+/// Separate Binary Expression grammar for priority
+///
+/// Priority
+/// 1.
+/// If Expression (if { stmts result } else { stmts result }
+/// 2.
+/// Arithmetic Expression ( +, -, *, /, %, ** )
+/// 3.
+/// Comparision Expression ( ==, !=, <, <=, >, >= )
+/// 4.
+/// Bit Expression ( &, |, ^ )
+/// 5.
+/// Logical Expression ( &&, || )
+/// - except
+/// Assign Expression ( =, &=, |=, ^=, <<=, >>=, +=, -=, *=, /=, %= )
 BinaryExpression: ast::Expression = {
     LogicalOrExpression,
     AssignExpression,
