@@ -1,3 +1,6 @@
+// I hate this lint too :)
+#![allow(unused_parens)]
+
 use lalrpop_util::lalrpop_mod;
 
 pub mod ast;

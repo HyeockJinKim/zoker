@@ -14,12 +14,14 @@ GlobalStatements: Vec<ast::Statement> = {
         stmts.push(stmt);
         stmts
     },
-    <GlobalStatement> => vec![<>]
+    <stmt:GlobalStatement> => vec![stmt]
 };
 
 pub GlobalStatement: ast::Statement = {
-    <Expression> ";" => ast::Statement {
-        node: ast::StatementType::Expression(<>),
+    <expr:Expression> ";" => ast::Statement {
+        node: ast::StatementType::Expression {
+            expression: Box::new(expr)
+        },
     },
     // TODO: Function and contract should be added.
 };
@@ -29,7 +31,7 @@ Statements: Vec<ast::Statement> = {
         stmts.push(stmt);
         stmts
     },
-    <Statement> ";" => vec![<>]
+    <stmt:Statement> ";" => vec![stmt]
 };
 
 /// Description for Statement
@@ -40,8 +42,10 @@ Statements: Vec<ast::Statement> = {
 /// Expression
 pub Statement: ast::Statement = {
     CompoundStatement,
-    <Expression> => ast::Statement {
-        node: ast::StatementType::Expression(<>),
+    <expr:Expression> => ast::Statement {
+        node: ast::StatementType::Expression {
+            expression: Box::new(expr)
+        },
     },
     // TODO: For statement should be added.
 };

@@ -38,7 +38,7 @@ pub fn stmt_to_str(node: &ast::StatementType) -> PrintAST {
                 children,
             }
         }
-        ast::StatementType::Expression(expr) => expr_to_str(&expr.node),
+        ast::StatementType::Expression { expression: expr } => expr_to_str(&expr.node),
     }
 }
 

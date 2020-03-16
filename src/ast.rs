@@ -31,7 +31,9 @@ pub enum StatementType {
     //     vector: Box<Expression>,
     //     statements: Vec<Statement>,
     // },
-    Expression(Expression),
+    Expression {
+        expression: Box<Expression>,
+    },
 }
 
 pub type Expression = Located<ExpressionType>;
