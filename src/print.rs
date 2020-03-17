@@ -1,18 +1,22 @@
 use crate::ast;
-use std::convert::TryInto;
 
 pub struct PrintAST {
     repr: String,
     size: usize,
+    left_margin: usize,
+    right_margin: usize,
     children: Vec<PrintAST>,
 }
 
-// fn program_to_str(node: &ast::Program) -> PrintAST {
-//     let child = node.to_child();
-//     match child.node {
-//         ast::ExpressionType => expr_to_str(&child.node)
-//     }
-// }
+fn get_margin(repr_size: usize, children_size: usize) -> (usize, usize) {
+    if repr_size > children_size {
+        let margin = repr_size - children_size;
+        let right = margin / 2;
+        (margin - right, right)
+    } else {
+        (0, 0)
+    }
+}
 
 pub fn stmt_to_str(node: &ast::StatementType) -> PrintAST {
     match node {
@@ -28,15 +32,18 @@ pub fn stmt_to_str(node: &ast::StatementType) -> PrintAST {
             if let Some(return_value) = returns {
                 children.push(expr_to_str(&return_value.node))
             }
-            let size = usize::max(
-                repr.len().try_into().unwrap(),
-                children.iter().fold(0, |v, child| v + child.size),
-            );
-            PrintAST {
+            let children_size = children.iter().fold(0, |v, child| v + child.size);
+            let size = usize::max(repr.len(), children_size);
+
+            let mut ast = PrintAST {
                 repr,
                 size,
+                left_margin: 0,
+                right_margin: 0,
                 children,
-            }
+            };
+            ast.add_children_margin();
+            ast
         }
         ast::StatementType::Expression { expression: expr } => expr_to_str(&expr.node),
     }
@@ -52,14 +59,20 @@ pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
             let left = expr_to_str(&l.node);
             let operator = operator_to_str(op);
             let right = expr_to_str(&r.node);
-            let s = String::from("[ AssignExpression ] ");
-            let size = s.len().try_into().unwrap();
+            let repr = String::from("[ AssignExpression ] ");
+            let children_size = left.size + operator.size + right.size;
+            let size = usize::max(repr.len(), children_size);
+            let (left_margin, right_margin) = get_margin(repr.len(), children_size);
 
-            PrintAST {
-                repr: s,
-                size: usize::max(size, left.size + operator.size + right.size),
+            let mut ast = PrintAST {
+                repr,
+                size,
+                left_margin,
+                right_margin,
                 children: vec![left, operator, right],
-            }
+            };
+            ast.add_children_margin();
+            ast
         }
         ast::ExpressionType::BinaryExpression {
             left: l,
@@ -69,14 +82,20 @@ pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
             let left = expr_to_str(&l.node);
             let operator = operator_to_str(op);
             let right = expr_to_str(&r.node);
-            let s = String::from("[ BinaryExpression ] ");
-            let size = s.len().try_into().unwrap();
+            let repr = String::from("[ BinaryExpression ] ");
+            let children_size = left.size + operator.size + right.size;
+            let size = usize::max(repr.len(), children_size);
+            let (left_margin, right_margin) = get_margin(repr.len(), children_size);
 
-            PrintAST {
-                repr: s,
-                size: usize::max(size, left.size + operator.size + right.size),
+            let mut ast = PrintAST {
+                repr,
+                size,
+                left_margin,
+                right_margin,
                 children: vec![left, operator, right],
-            }
+            };
+            ast.add_children_margin();
+            ast
         }
         ast::ExpressionType::IfExpression {
             condition: cond,
@@ -86,30 +105,32 @@ pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
             let condition = expr_to_str(&cond.node);
             let if_statement = stmt_to_str(&if_stmt.node);
             let repr;
+            let children_size;
             let size;
             let children;
             if let Some(else_statement) = else_stmt {
                 let else_statement = stmt_to_str(&else_statement.node);
                 repr = String::from("[ If-else Expression ] ");
-                size = usize::max(
-                    repr.len().try_into().unwrap(),
-                    condition.size + if_statement.size + else_statement.size,
-                );
+                children_size = condition.size + if_statement.size + else_statement.size;
+                size = usize::max(repr.len(), children_size);
                 children = vec![condition, if_statement, else_statement];
             } else {
                 repr = String::from("[ If Expression ] ");
-                size = usize::max(
-                    repr.len().try_into().unwrap(),
-                    condition.size + if_statement.size,
-                );
+                children_size = condition.size + if_statement.size;
+                size = usize::max(repr.len(), children_size);
                 children = vec![condition, if_statement];
             }
+            let (left_margin, right_margin) = get_margin(repr.len(), children_size);
 
-            PrintAST {
+            let mut ast = PrintAST {
                 repr,
                 size,
+                left_margin,
+                right_margin,
                 children,
-            }
+            };
+            ast.add_children_margin();
+            ast
         }
         ast::ExpressionType::UnaryExpression {
             operator: op,
@@ -117,8 +138,9 @@ pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
         } => {
             let operator = operator_to_str(&op);
             let expression = expr_to_str(&expr.node);
-            let s = String::from("[ UnaryExpression ] ");
-            let size = usize::max(s.len(), operator.size + expression.size);
+            let repr = String::from("[ UnaryExpression ] ");
+            let children_size = operator.size + expression.size;
+            let size = usize::max(repr.len(), children_size);
             let children = if &ast::Operator::PostfixPlusPlus == op
                 || &ast::Operator::PostfixMinusMinus == op
             {
@@ -126,28 +148,39 @@ pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
             } else {
                 vec![expression, operator]
             };
+            let (left_margin, right_margin) = get_margin(repr.len(), children_size);
 
             PrintAST {
-                repr: s,
+                repr,
                 size,
+                left_margin,
+                right_margin,
                 children,
             }
         }
         ast::ExpressionType::Number { value: v } => {
-            let s = format!("[ Number : {} ] ", v);
-            let size = s.len();
+            let repr = format!("[ Number : {} ] ", v);
+            let size = repr.len();
+            let left_margin = 0;
+            let right_margin = 0;
             PrintAST {
-                repr: s,
+                repr,
                 size,
+                left_margin,
+                right_margin,
                 children: vec![],
             }
         }
         ast::ExpressionType::Identifier { value: v } => {
-            let s = format!("[ Identifier : {} ] ", v);
-            let size = s.len();
+            let repr = format!("[ Identifier : {} ] ", v);
+            let size = repr.len();
+            let left_margin = 0;
+            let right_margin = 0;
             PrintAST {
-                repr: s,
+                repr,
                 size,
+                left_margin,
+                right_margin,
                 children: vec![],
             }
         }
@@ -159,176 +192,246 @@ pub fn operator_to_str(node: &ast::Operator) -> PrintAST {
         ast::Operator::Add => PrintAST {
             repr: String::from("[ binop : + ] "),
             size: 14,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::Sub => PrintAST {
             repr: String::from("[ binop : - ] "),
             size: 14,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::Mul => PrintAST {
             repr: String::from("[ binop : * ] "),
             size: 14,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::Div => PrintAST {
             repr: String::from("[ binop : / ] "),
             size: 14,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::Mod => PrintAST {
             repr: String::from("[ binop : % ] "),
             size: 14,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::Pow => PrintAST {
             repr: String::from("[ op : pow ] "),
             size: 13,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::Plus => PrintAST {
             repr: String::from("[ uop : + ] "),
             size: 12,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::Minus => PrintAST {
             repr: String::from("[ uop : - ] "),
             size: 12,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::Not => PrintAST {
             repr: String::from("[ uop : ! ] "),
             size: 12,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::PrefixPlusPlus => PrintAST {
             repr: String::from("[ pre-op : ++ ] "),
             size: 16,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::PrefixMinusMinus => PrintAST {
             repr: String::from("[ pre-op : -- ] "),
             size: 16,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::PostfixPlusPlus => PrintAST {
             repr: String::from("[ post-op : ++ ] "),
             size: 17,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::PostfixMinusMinus => PrintAST {
             repr: String::from("[ post-op : -- ] "),
             size: 17,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::Assign => PrintAST {
             repr: String::from("[ assign-op : = ] "),
             size: 18,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::BitAndAssign => PrintAST {
             repr: String::from("[ assign-op : &= ] "),
             size: 19,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::BitXorAssign => PrintAST {
             repr: String::from("[ assign-op : ^= ] "),
             size: 19,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::BitOrAssign => PrintAST {
             repr: String::from("[ assign-op : |= ] "),
             size: 19,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::LShiftAssign => PrintAST {
             repr: String::from("[ assign-op : <<= ] "),
             size: 20,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::RShiftAssign => PrintAST {
             repr: String::from("[ assign-op : >>= ] "),
             size: 20,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::AddAssign => PrintAST {
             repr: String::from("[ assign-op : += ] "),
             size: 19,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::SubAssign => PrintAST {
             repr: String::from("[ assign-op : -= ] "),
             size: 19,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::MulAssign => PrintAST {
             repr: String::from("[ assign-op : *= ] "),
             size: 19,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::DivAssign => PrintAST {
             repr: String::from("[ assign-op : /= ] "),
             size: 19,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::ModAssign => PrintAST {
             repr: String::from("[ assign-op : %= ] "),
             size: 19,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::Lt => PrintAST {
             repr: String::from("[ compare-op : < ] "),
             size: 19,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::Gt => PrintAST {
             repr: String::from("[ compare-op : > ] "),
             size: 19,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::Le => PrintAST {
             repr: String::from("[ compare-op : <= ] "),
             size: 20,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::Ge => PrintAST {
             repr: String::from("[ compare-op : >= ] "),
             size: 20,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::Eq => PrintAST {
             repr: String::from("[ compare-op : == ] "),
             size: 20,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::NotEq => PrintAST {
             repr: String::from("[ compare-op : != ] "),
             size: 20,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::And => PrintAST {
             repr: String::from("[ logical-op : && ] "),
             size: 20,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::Or => PrintAST {
             repr: String::from("[ logical-op : || ] "),
             size: 20,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::BitAnd => PrintAST {
             repr: String::from("[ bit-op : & ] "),
             size: 15,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::BitXor => PrintAST {
             repr: String::from("[ bit-op : ^ ] "),
             size: 15,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
         ast::Operator::BitOr => PrintAST {
             repr: String::from("[ bit-op : | ] "),
             size: 15,
+            left_margin: 0,
+            right_margin: 0,
             children: vec![],
         },
     }
@@ -350,11 +453,14 @@ impl PrintAST {
                     let empty_ast = PrintAST {
                         repr: String::new(),
                         size: node.size,
+                        left_margin: node.left_margin,
+                        right_margin: node.right_margin,
                         children: vec![],
                     };
                     children.push(empty_ast);
                 } else {
-                    for child in node.children.clone() {
+                    let child_vec = node.children.clone();
+                    for child in child_vec {
                         is_empty = true;
                         children.push(child);
                     }
@@ -370,13 +476,37 @@ impl PrintAST {
         str
     }
 
+    fn add_children_margin(&mut self) {
+        if !self.children.is_empty() {
+            let children_size = self.children.iter().fold(0, |v, child| v + child.size);
+            let (left_margin, right_margin) = get_margin(self.repr.len(), children_size);
+
+            if let Some(child) = self.children.first_mut() {
+                child.left_margin += left_margin;
+            }
+            if let Some(child) = self.children.last_mut() {
+                child.right_margin += right_margin;
+            }
+        }
+    }
+
+    fn get_margin(&self) -> (String, String) {
+        let margin_size = self.size - self.repr.len();
+        let left_size = margin_size / 2;
+        let right_size = margin_size - left_size;
+        let left_margin = " ".repeat(left_size + self.left_margin);
+        let right_margin = " ".repeat(right_size + self.right_margin);
+        (left_margin, right_margin)
+    }
+
     fn node_str(&self) -> String {
         if self.repr.is_empty() {
-            " ".repeat(self.size)
+            let left = " ".repeat(self.left_margin);
+            let right = " ".repeat(self.right_margin);
+            format!("{}{}{}", left, " ".repeat(self.size), right)
         } else {
-            let margin_size = (self.size - self.repr.len()) / 2;
-            let margin = " ".repeat(margin_size);
-            format!("{}{}{}", margin, &self.repr, margin)
+            let (left, right) = self.get_margin();
+            format!("{}{}{}", left, &self.repr, right)
         }
     }
 }
@@ -386,6 +516,8 @@ impl Clone for PrintAST {
         PrintAST {
             repr: String::from(self.str()),
             size: self.size,
+            left_margin: self.left_margin,
+            right_margin: self.right_margin,
             children: self.children.clone(),
         }
     }
