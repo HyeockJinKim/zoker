@@ -20,7 +20,7 @@ GlobalStatements: Vec<ast::Statement> = {
 pub GlobalStatement: ast::Statement = {
     <expr:Expression> ";" => ast::Statement {
         node: ast::StatementType::Expression {
-            expression: Box::new(expr)
+            expression: Box::new(expr),
         },
     },
     // TODO: Function and contract should be added.
@@ -44,7 +44,7 @@ pub Statement: ast::Statement = {
     CompoundStatement,
     <expr:Expression> => ast::Statement {
         node: ast::StatementType::Expression {
-            expression: Box::new(expr)
+            expression: Box::new(expr),
         },
     },
     // TODO: For statement should be added.
@@ -64,12 +64,25 @@ IfExpression: ast::Expression = {
         node: ast::ExpressionType::IfExpression {
             condition: Box::new(expr),
             if_statement: Box::new(if_stmt),
-            else_statement: else_stmt.map_or(None, |x| Some(Box::new(x.1)))
+            else_statement: else_stmt.map_or(None, |x| Some(Box::new(x.1))),
+        }
+    },
+};
+
+ForEachExpression: ast::Expression = {
+    "for" <iter:Expression> "in" <vector:Expression> <stmt:CompoundStatement> <else_stmt:("else" CompoundStatement)?> => ast::Expression {
+        node: ast::ExpressionType::ForEachExpression {
+            iterator: Box::new(iter),
+            vector: Box::new(vector),
+            statement: Box::new(stmt),
+            else_statement: else_stmt.map_or(None, |x| Some(Box::new(x.1))),
         }
     },
 };
 
 pub Expression: ast::Expression = {
+    IfExpression,
+    ForEachExpression,
     BinaryExpression,
 };
 
@@ -293,7 +306,6 @@ PostfixUnaryOperator: ast::Operator = {
 };
 
 Value: ast::Expression = {
-    IfExpression,
     Terminal,
     "(" <Expression> ")",
 };

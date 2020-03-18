@@ -62,13 +62,12 @@ pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
             let repr = String::from("[ AssignExpression ] ");
             let children_size = left.size + operator.size + right.size;
             let size = usize::max(repr.len(), children_size);
-            let (left_margin, right_margin) = get_margin(repr.len(), children_size);
 
             let mut ast = PrintAST {
                 repr,
                 size,
-                left_margin,
-                right_margin,
+                left_margin: 0,
+                right_margin: 0,
                 children: vec![left, operator, right],
             };
             ast.add_children_margin();
@@ -85,14 +84,49 @@ pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
             let repr = String::from("[ BinaryExpression ] ");
             let children_size = left.size + operator.size + right.size;
             let size = usize::max(repr.len(), children_size);
-            let (left_margin, right_margin) = get_margin(repr.len(), children_size);
 
             let mut ast = PrintAST {
                 repr,
                 size,
-                left_margin,
-                right_margin,
+                left_margin: 0,
+                right_margin: 0,
                 children: vec![left, operator, right],
+            };
+            ast.add_children_margin();
+            ast
+        }
+        ast::ExpressionType::ForEachExpression {
+            iterator: iter,
+            vector: vec,
+            statement: stmt,
+            else_statement: else_stmt,
+        } => {
+            let iterator = expr_to_str(&iter.node);
+            let vector = expr_to_str(&vec.node);
+            let statement = stmt_to_str(&stmt.node);
+            let repr;
+            let size;
+            let children;
+            if let Some(else_statement) = else_stmt {
+                let else_statement = stmt_to_str(&else_statement.node);
+                repr = String::from("[ For-else Expression ] ");
+                let children_size =
+                    iterator.size + vector.size + statement.size + else_statement.size;
+                size = usize::max(repr.len(), children_size);
+                children = vec![iterator, vector, statement, else_statement];
+            } else {
+                repr = String::from("[ For Expression ] ");
+                let children_size = iterator.size + vector.size + statement.size;
+                size = usize::max(repr.len(), children_size);
+                children = vec![iterator, vector, statement];
+            }
+
+            let mut ast = PrintAST {
+                repr,
+                size,
+                left_margin: 0,
+                right_margin: 0,
+                children,
             };
             ast.add_children_margin();
             ast
@@ -105,28 +139,26 @@ pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
             let condition = expr_to_str(&cond.node);
             let if_statement = stmt_to_str(&if_stmt.node);
             let repr;
-            let children_size;
             let size;
             let children;
             if let Some(else_statement) = else_stmt {
                 let else_statement = stmt_to_str(&else_statement.node);
                 repr = String::from("[ If-else Expression ] ");
-                children_size = condition.size + if_statement.size + else_statement.size;
+                let children_size = condition.size + if_statement.size + else_statement.size;
                 size = usize::max(repr.len(), children_size);
                 children = vec![condition, if_statement, else_statement];
             } else {
                 repr = String::from("[ If Expression ] ");
-                children_size = condition.size + if_statement.size;
+                let children_size = condition.size + if_statement.size;
                 size = usize::max(repr.len(), children_size);
                 children = vec![condition, if_statement];
             }
-            let (left_margin, right_margin) = get_margin(repr.len(), children_size);
 
             let mut ast = PrintAST {
                 repr,
                 size,
-                left_margin,
-                right_margin,
+                left_margin: 0,
+                right_margin: 0,
                 children,
             };
             ast.add_children_margin();
@@ -148,39 +180,34 @@ pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
             } else {
                 vec![expression, operator]
             };
-            let (left_margin, right_margin) = get_margin(repr.len(), children_size);
 
             PrintAST {
                 repr,
                 size,
-                left_margin,
-                right_margin,
+                left_margin: 0,
+                right_margin: 0,
                 children,
             }
         }
         ast::ExpressionType::Number { value: v } => {
             let repr = format!("[ Number : {} ] ", v);
             let size = repr.len();
-            let left_margin = 0;
-            let right_margin = 0;
             PrintAST {
                 repr,
                 size,
-                left_margin,
-                right_margin,
+                left_margin: 0,
+                right_margin: 0,
                 children: vec![],
             }
         }
         ast::ExpressionType::Identifier { value: v } => {
             let repr = format!("[ Identifier : {} ] ", v);
             let size = repr.len();
-            let left_margin = 0;
-            let right_margin = 0;
             PrintAST {
                 repr,
                 size,
-                left_margin,
-                right_margin,
+                left_margin: 0,
+                right_margin: 0,
                 children: vec![],
             }
         }

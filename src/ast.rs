@@ -20,17 +20,6 @@ pub enum StatementType {
         statements: Vec<Statement>,
         return_value: Option<Box<Expression>>,
     },
-    // ForStatement {
-    //     initializer: Box<Expression>,
-    //     condition: Box<Expression>,
-    //     update: Box<Expression>,
-    //     statements: Vec<Statement>,
-    // },
-    // ForEachStatement {
-    //     iterator: Box<Expression>,
-    //     vector: Box<Expression>,
-    //     statements: Vec<Statement>,
-    // },
     Expression {
         expression: Box<Expression>,
     },
@@ -53,6 +42,12 @@ pub enum ExpressionType {
     IfExpression {
         condition: Box<Expression>,
         if_statement: Box<Statement>,
+        else_statement: Option<Box<Statement>>,
+    },
+    ForEachExpression {
+        iterator: Box<Expression>,
+        vector: Box<Expression>,
+        statement: Box<Statement>,
         else_statement: Option<Box<Statement>>,
     },
     UnaryExpression {
