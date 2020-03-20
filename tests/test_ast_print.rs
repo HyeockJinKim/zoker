@@ -176,3 +176,15 @@ fn test_print_function_call_expression_ast2() {
     let ast = print::stmt_to_str(&stmt.node);
     assert_eq!(ast.print_ast(), "              [ Function Call Expression ]               \n[ Identifier : f ]       [ Arguments Expression ]        \n                   [ Identifier : i ] [ Identifier : j ] \n");
 }
+
+#[test]
+fn test_print_initializer_expression_ast1() {
+    use zoker::StatementParser as parser;
+    let stmt = parser::new().parse("uint i").unwrap();
+
+    let ast = print::stmt_to_str(&stmt.node);
+    assert_eq!(
+        ast.print_ast(),
+        "       [ Initializer Statement ]         \n[ Identifier : uint ] [ Identifier : i ] \n"
+    );
+}

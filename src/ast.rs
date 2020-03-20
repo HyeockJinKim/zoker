@@ -22,6 +22,11 @@ pub enum StatementType {
         parameters: Box<Expression>,
         statement: Box<Statement>,
     },
+    // Global + Local Statement
+    InitializerStatement {
+        variable_type: Box<Expression>,
+        variable_name: Box<Expression>,
+    },
     // Local Statement
     CompoundStatement {
         statements: Vec<Statement>,

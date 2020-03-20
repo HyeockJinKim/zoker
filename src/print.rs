@@ -43,6 +43,27 @@ pub fn stmt_to_str(node: &ast::StatementType) -> PrintAST {
             ast.add_children_margin();
             ast
         }
+        ast::StatementType::InitializerStatement {
+            variable_type: var_type,
+            variable_name: var_name,
+        } => {
+            let repr = String::from("[ Initializer Statement ] ");
+            let variable_type = expr_to_str(&var_type.node);
+            let variable_name = expr_to_str(&var_name.node);
+
+            let children_size = variable_type.size + variable_name.size;
+            let size = usize::max(repr.len(), children_size);
+
+            let mut ast = PrintAST {
+                repr,
+                size,
+                left_margin: 0,
+                right_margin: 0,
+                children: vec![variable_type, variable_name],
+            };
+            ast.add_children_margin();
+            ast
+        }
         ast::StatementType::CompoundStatement {
             statements: stmts,
             return_value: returns,

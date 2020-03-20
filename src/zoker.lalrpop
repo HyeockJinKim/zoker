@@ -24,7 +24,7 @@ pub GlobalStatement: ast::Statement = {
         },
     },
     FunctionStatement,
-    // TODO: Function and contract should be added.
+    InitializerStatement,
 };
 
 FunctionStatement: ast::Statement = {
@@ -52,13 +52,23 @@ Statements: Vec<ast::Statement> = {
 /// { Statements }
 /// Expression
 pub Statement: ast::Statement = {
+    InitializerStatement,
     CompoundStatement,
     <expr:Expression> => ast::Statement {
         node: ast::StatementType::Expression {
             expression: Box::new(expr),
         },
     },
-    // TODO: For statement should be added.
+    // TODO: For statement should be added. (No support Zkp)
+};
+
+InitializerStatement: ast::Statement = {
+    <var_type:Identifier> <var_name:Identifier> => ast::Statement {
+        node: ast::StatementType::InitializerStatement {
+            variable_type: Box::new(var_type),
+            variable_name: Box::new(var_name),
+        }
+    }
 };
 
 CompoundStatement: ast::Statement = {
