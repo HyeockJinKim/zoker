@@ -16,6 +16,13 @@ pub type Statement = Located<StatementType>;
 
 #[derive(Debug, PartialEq)]
 pub enum StatementType {
+    // Global Statement
+    // FunctionStatement {
+    //     function_name: Box<Expression>,
+    //     arguments: Box<Expression>,
+    //     statement: Box<Statement>,
+    // },
+    // Local Statement
     CompoundStatement {
         statements: Vec<Statement>,
         return_value: Option<Box<Expression>>,

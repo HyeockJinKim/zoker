@@ -23,6 +23,7 @@ pub GlobalStatement: ast::Statement = {
             expression: Box::new(expr),
         },
     },
+    // FunctionStatement,
     // TODO: Function and contract should be added.
 };
 
@@ -303,6 +304,19 @@ PrefixUnaryOperator: ast::Operator = {
 PostfixUnaryOperator: ast::Operator = {
     "++" => ast::Operator::PostfixPlusPlus,
     "--" => ast::Operator::PostfixMinusMinus,
+};
+
+ArgumentList: Vec<ast::Expression> = {
+    <mut args:ArgumentList> <expr:Expression> => {
+        args.push(expr);
+        args
+    },
+    <expr:Expression> => vec![expr],
+};
+
+Arguments: Vec<ast::Expression> = {
+    "(" <ArgumentList> ")",
+    "(" ")" => vec![],
 };
 
 Value: ast::Expression = {
