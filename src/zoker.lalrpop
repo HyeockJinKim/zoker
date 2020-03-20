@@ -306,6 +306,19 @@ PostfixUnaryOperator: ast::Operator = {
     "--" => ast::Operator::PostfixMinusMinus,
 };
 
+ParameterList: Vec<ast::Expression> = {
+    <mut params:ParameterList> <expr:Expression> => {
+        params.push(expr);
+        params
+    },
+    <expr:Expression> => vec![expr],
+};
+
+Parameters: Vec<ast::Expression> = {
+    "(" <ParameterList> ")",
+    "(" ")" => vec![],
+};
+
 ArgumentList: Vec<ast::Expression> = {
     <mut args:ArgumentList> <expr:Expression> => {
         args.push(expr);
