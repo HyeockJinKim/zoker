@@ -91,17 +91,14 @@ ForEachExpression: ast::Expression = {
     },
 };
 
-pub Expression: ast::Expression = {
-    IfExpression,
-    ForEachExpression,
-    BinaryExpression,
-};
 
-/// Separate Binary Expression grammar for priority
+/// Separate Expression grammar for priority
 ///
 /// Priority
 /// 1.
 /// If Expression (if { stmts result } else { stmts result }
+/// For Each Expression ( for in { stmts result } )
+/// Function Call Expression ( func ( args ) )
 /// 2.
 /// Arithmetic Expression ( +, -, *, /, %, ** )
 /// 3.
@@ -112,6 +109,22 @@ pub Expression: ast::Expression = {
 /// Logical Expression ( &&, || )
 /// - except
 /// Assign Expression ( =, &=, |=, ^=, <<=, >>=, +=, -=, *=, /=, %= )
+pub Expression: ast::Expression = {
+    FunctionCallExpression,
+    IfExpression,
+    ForEachExpression,
+    BinaryExpression,
+};
+
+FunctionCallExpression: ast::Expression = {
+    <id:Identifier> <args:Arguments> => ast::Expression {
+    node: ast::ExpressionType::FunctionCallExpression {
+            function_name: Box::new(id),
+            arguments: Box::new(args),
+        }
+    },
+};
+
 BinaryExpression: ast::Expression = {
     LogicalOrExpression,
     AssignExpression,

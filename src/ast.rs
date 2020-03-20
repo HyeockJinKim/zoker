@@ -46,6 +46,10 @@ pub enum ExpressionType {
         operator: Operator,
         right: Box<Expression>,
     },
+    FunctionCallExpression {
+        function_name: Box<Expression>,
+        arguments: Box<Expression>,
+    },
     IfExpression {
         condition: Box<Expression>,
         if_statement: Box<Statement>,

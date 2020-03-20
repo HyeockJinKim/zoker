@@ -151,8 +151,28 @@ fn test_print_function_statement_ast1() {
 #[test]
 fn test_print_function_statement_ast2() {
     use zoker::GlobalStatementParser as parser;
-    let stmt = parser::new().parse("function plus(i, j) { i + j }").unwrap();
+    let stmt = parser::new()
+        .parse("function plus(i, j) { i + j }")
+        .unwrap();
 
     let ast = print::stmt_to_str(&stmt.node);
     assert_eq!(ast.print_ast(), "                                            [ Function Statement ]                                              \n[ Identifier : plus ]       [ Parameters Expression ]                     [ Compound Statement ]                \n                      [ Identifier : i ] [ Identifier : j ]                [ BinaryExpression ]                 \n                                                            [ Identifier : i ] [ binop : + ] [ Identifier : j ] \n");
+}
+
+#[test]
+fn test_print_function_call_expression_ast1() {
+    use zoker::StatementParser as parser;
+    let stmt = parser::new().parse("f()").unwrap();
+
+    let ast = print::stmt_to_str(&stmt.node);
+    assert_eq!(ast.print_ast(), "       [ Function Call Expression ]         \n[ Identifier : f ] [ Arguments Expression ] \n");
+}
+
+#[test]
+fn test_print_function_call_expression_ast2() {
+    use zoker::StatementParser as parser;
+    let stmt = parser::new().parse("f(i, j)").unwrap();
+
+    let ast = print::stmt_to_str(&stmt.node);
+    assert_eq!(ast.print_ast(), "              [ Function Call Expression ]               \n[ Identifier : f ]       [ Arguments Expression ]        \n                   [ Identifier : i ] [ Identifier : j ] \n");
 }

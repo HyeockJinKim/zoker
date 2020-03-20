@@ -118,6 +118,26 @@ pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
             ast.add_children_margin();
             ast
         }
+        ast::ExpressionType::FunctionCallExpression {
+            function_name: id,
+            arguments: args,
+        } => {
+            let function_name = expr_to_str(&id.node);
+            let arguments = expr_to_str(&args.node);
+            let repr = String::from("[ Function Call Expression ] ");
+            let children_size = function_name.size + arguments.size;
+            let size = usize::max(repr.len(), children_size);
+
+            let mut ast = PrintAST {
+                repr,
+                size,
+                left_margin: 0,
+                right_margin: 0,
+                children: vec![function_name, arguments],
+            };
+            ast.add_children_margin();
+            ast
+        }
         ast::ExpressionType::ForEachExpression {
             iterator: iter,
             vector: vec,
