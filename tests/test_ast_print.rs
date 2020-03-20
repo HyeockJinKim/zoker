@@ -138,3 +138,21 @@ fn test_print_for_each_statement_ast2() {
     let ast = print::stmt_to_str(&stmt.node);
     assert_eq!(ast.print_ast(), "                                         [ AssignExpression ]                                          \n[ Identifier : sum ] [ assign-op : += ]                       [ For Expression ]                       \n                                        [ Identifier : i ] [ Identifier : vec ] [ Compound Statement ] \n                                                                                  [ Identifier : i ]   \n");
 }
+
+#[test]
+fn test_print_function_statement_ast1() {
+    use zoker::GlobalStatementParser as parser;
+    let stmt = parser::new().parse("function two() { 3 }").unwrap();
+
+    let ast = print::stmt_to_str(&stmt.node);
+    assert_eq!(ast.print_ast(), "                       [ Function Statement ]                         \n[ Identifier : two ] [ Parameters Expression ] [ Compound Statement ] \n                                                   [ Number : 3 ]     \n");
+}
+
+#[test]
+fn test_print_function_statement_ast2() {
+    use zoker::GlobalStatementParser as parser;
+    let stmt = parser::new().parse("function plus(i, j) { i + j }").unwrap();
+
+    let ast = print::stmt_to_str(&stmt.node);
+    assert_eq!(ast.print_ast(), "                                            [ Function Statement ]                                              \n[ Identifier : plus ]       [ Parameters Expression ]                     [ Compound Statement ]                \n                      [ Identifier : i ] [ Identifier : j ]                [ BinaryExpression ]                 \n                                                            [ Identifier : i ] [ binop : + ] [ Identifier : j ] \n");
+}

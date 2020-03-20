@@ -23,8 +23,18 @@ pub GlobalStatement: ast::Statement = {
             expression: Box::new(expr),
         },
     },
-    // FunctionStatement,
+    FunctionStatement,
     // TODO: Function and contract should be added.
+};
+
+FunctionStatement: ast::Statement = {
+    "function" <id:Identifier> <params:Parameters> <stmt:CompoundStatement> => ast::Statement {
+        node: ast::StatementType::FunctionStatement {
+            function_name: Box::new(id),
+            parameters: Box::new(params),
+            statement: Box::new(stmt),
+        }
+    },
 };
 
 Statements: Vec<ast::Statement> = {
@@ -307,29 +317,45 @@ PostfixUnaryOperator: ast::Operator = {
 };
 
 ParameterList: Vec<ast::Expression> = {
-    <mut params:ParameterList> <expr:Expression> => {
-        params.push(expr);
+    <mut params:ParameterList> "," <id:Identifier> => {
+        params.push(id);
         params
     },
-    <expr:Expression> => vec![expr],
+    <id:Identifier> => vec![id],
 };
 
-Parameters: Vec<ast::Expression> = {
-    "(" <ParameterList> ")",
-    "(" ")" => vec![],
+Parameters: ast::Expression = {
+    "(" <ParameterList> ")" => ast::Expression {
+        node: ast::ExpressionType::Parameters {
+            parameters: <>
+        }
+    },
+    "(" ")" => ast::Expression {
+        node: ast::ExpressionType::Parameters {
+            parameters: vec![]
+        }
+    },
 };
 
 ArgumentList: Vec<ast::Expression> = {
-    <mut args:ArgumentList> <expr:Expression> => {
+    <mut args:ArgumentList> "," <expr:Expression> => {
         args.push(expr);
         args
     },
     <expr:Expression> => vec![expr],
 };
 
-Arguments: Vec<ast::Expression> = {
-    "(" <ArgumentList> ")",
-    "(" ")" => vec![],
+Arguments: ast::Expression = {
+    "(" <ArgumentList> ")" => ast::Expression {
+        node: ast::ExpressionType::Arguments {
+            arguments: <>
+        }
+    },
+    "(" ")" => ast::Expression {
+        node: ast::ExpressionType::Arguments {
+            arguments: vec![]
+        }
+    },
 };
 
 Value: ast::Expression = {

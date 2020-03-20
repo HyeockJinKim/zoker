@@ -20,6 +20,29 @@ fn get_margin(repr_size: usize, children_size: usize) -> (usize, usize) {
 
 pub fn stmt_to_str(node: &ast::StatementType) -> PrintAST {
     match node {
+        ast::StatementType::FunctionStatement {
+            function_name: id,
+            parameters: params,
+            statement: stmt,
+        } => {
+            let repr = String::from("[ Function Statement ] ");
+            let function_name = expr_to_str(&id.node);
+            let parameters = expr_to_str(&params.node);
+            let statement = stmt_to_str(&stmt.node);
+            let children = vec![function_name, parameters, statement];
+            let children_size = children.iter().fold(0, |v, child| v + child.size);
+            let size = usize::max(repr.len(), children_size);
+
+            let mut ast = PrintAST {
+                repr,
+                size,
+                left_margin: 0,
+                right_margin: 0,
+                children,
+            };
+            ast.add_children_margin();
+            ast
+        }
         ast::StatementType::CompoundStatement {
             statements: stmts,
             return_value: returns,
@@ -188,6 +211,44 @@ pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
                 right_margin: 0,
                 children,
             }
+        }
+        ast::ExpressionType::Parameters { parameters: params } => {
+            let children = params
+                .iter()
+                .map(|param| expr_to_str(&param.node))
+                .collect::<Vec<_>>();
+            let repr = String::from("[ Parameters Expression ] ");
+            let children_size = children.iter().fold(0, |v, child| v + child.size);
+            let size = usize::max(repr.len(), children_size);
+
+            let mut ast = PrintAST {
+                repr,
+                size,
+                left_margin: 0,
+                right_margin: 0,
+                children,
+            };
+            ast.add_children_margin();
+            ast
+        }
+        ast::ExpressionType::Arguments { arguments: args } => {
+            let children = args
+                .iter()
+                .map(|arg| expr_to_str(&arg.node))
+                .collect::<Vec<_>>();
+            let repr = String::from("[ Arguments Expression ] ");
+            let children_size = children.iter().fold(0, |v, child| v + child.size);
+            let size = usize::max(repr.len(), children_size);
+
+            let mut ast = PrintAST {
+                repr,
+                size,
+                left_margin: 0,
+                right_margin: 0,
+                children,
+            };
+            ast.add_children_margin();
+            ast
         }
         ast::ExpressionType::Number { value: v } => {
             let repr = format!("[ Number : {} ] ", v);

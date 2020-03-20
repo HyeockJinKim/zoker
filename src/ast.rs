@@ -17,11 +17,11 @@ pub type Statement = Located<StatementType>;
 #[derive(Debug, PartialEq)]
 pub enum StatementType {
     // Global Statement
-    // FunctionStatement {
-    //     function_name: Box<Expression>,
-    //     arguments: Box<Expression>,
-    //     statement: Box<Statement>,
-    // },
+    FunctionStatement {
+        function_name: Box<Expression>,
+        parameters: Box<Expression>,
+        statement: Box<Statement>,
+    },
     // Local Statement
     CompoundStatement {
         statements: Vec<Statement>,
@@ -60,6 +60,12 @@ pub enum ExpressionType {
     UnaryExpression {
         operator: Operator,
         expression: Box<Expression>,
+    },
+    Parameters {
+        parameters: Vec<Expression>,
+    },
+    Arguments {
+        arguments: Vec<Expression>,
     },
     Number {
         value: i32,
