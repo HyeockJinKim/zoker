@@ -152,11 +152,11 @@ fn test_print_function_statement_ast1() {
 fn test_print_function_statement_ast2() {
     use zoker::GlobalStatementParser as parser;
     let stmt = parser::new()
-        .parse("function plus(i, j) { i + j }")
+        .parse("function plus(uint i, int j) { i + j }")
         .unwrap();
 
     let ast = print::stmt_to_str(&stmt.node);
-    assert_eq!(ast.print_ast(), "                                            [ Function Statement ]                                              \n[ Identifier : plus ]       [ Parameters Expression ]                     [ Compound Statement ]                \n                      [ Identifier : i ] [ Identifier : j ]                [ BinaryExpression ]                 \n                                                            [ Identifier : i ] [ binop : + ] [ Identifier : j ] \n");
+    assert_eq!(ast.print_ast(), "                                                               [ Function Statement ]                                                                \n[ Identifier : plus ]                         [ Parameters Expression ]                                        [ Compound Statement ]                \n                            [ Initializer Statement ]            [ Initializer Statement ]                      [ BinaryExpression ]                 \n                      [ type : uint256 ] [ Identifier : i ] [ type : int256 ] [ Identifier : j ] [ Identifier : i ] [ binop : + ] [ Identifier : j ] \n");
 }
 
 #[test]

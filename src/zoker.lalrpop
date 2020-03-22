@@ -24,7 +24,6 @@ pub GlobalStatement: ast::Statement = {
         },
     },
     FunctionStatement,
-    InitializerStatement,
 };
 
 FunctionStatement: ast::Statement = {
@@ -52,7 +51,6 @@ Statements: Vec<ast::Statement> = {
 /// { Statements }
 /// Expression
 pub Statement: ast::Statement = {
-    InitializerStatement,
     CompoundStatement,
     <expr:Expression> => ast::Statement {
         node: ast::StatementType::Expression {
@@ -62,9 +60,9 @@ pub Statement: ast::Statement = {
     // TODO: For statement should be added. (No support Zkp)
 };
 
-InitializerStatement: ast::Statement = {
-    <var_type:Type> <var_name:Identifier> => ast::Statement {
-        node: ast::StatementType::InitializerStatement {
+InitializerExpression: ast::Expression = {
+    <var_type:Type> <var_name:Identifier> => ast::Expression {
+        node: ast::ExpressionType::InitializerExpression {
             variable_type: var_type,
             variable_name: Box::new(var_name),
         }
@@ -101,7 +99,6 @@ ForEachExpression: ast::Expression = {
     },
 };
 
-
 /// Separate Expression grammar for priority
 ///
 /// Priority
@@ -120,6 +117,7 @@ ForEachExpression: ast::Expression = {
 /// - except
 /// Assign Expression ( =, &=, |=, ^=, <<=, >>=, +=, -=, *=, /=, %= )
 pub Expression: ast::Expression = {
+    InitializerExpression,
     FunctionCallExpression,
     IfExpression,
     ForEachExpression,
@@ -340,17 +338,17 @@ PostfixUnaryOperator: ast::Operator = {
 };
 
 ParameterList: Vec<ast::Expression> = {
-    <mut params:ParameterList> "," <id:Identifier> => {
-        params.push(id);
+    <mut params:ParameterList> "," <init:InitializerExpression> => {
+        params.push(init);
         params
     },
-    <id:Identifier> => vec![id],
+    <init:InitializerExpression> => vec![init],
 };
 
 Parameters: ast::Expression = {
     "(" <ParameterList> ")" => ast::Expression {
         node: ast::ExpressionType::Parameters {
-            parameters: <>
+            parameters: <>,
         }
     },
     "(" ")" => ast::Expression {
