@@ -185,6 +185,6 @@ fn test_print_initializer_expression_ast1() {
     let ast = print::stmt_to_str(&stmt.node);
     assert_eq!(
         ast.print_ast(),
-        "       [ Initializer Statement ]         \n[ Identifier : uint ] [ Identifier : i ] \n"
+        "      [ Initializer Statement ]       \n[ type : uint256 ] [ Identifier : i ] \n"
     );
 }

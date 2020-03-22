@@ -63,9 +63,9 @@ pub Statement: ast::Statement = {
 };
 
 InitializerStatement: ast::Statement = {
-    <var_type:Identifier> <var_name:Identifier> => ast::Statement {
+    <var_type:Type> <var_name:Identifier> => ast::Statement {
         node: ast::StatementType::InitializerStatement {
-            variable_type: Box::new(var_type),
+            variable_type: var_type,
             variable_name: Box::new(var_name),
         }
     }
@@ -401,4 +401,19 @@ Identifier: ast::Expression = {
     r"[a-zA-Z][_a-zA-Z0-9]*" => ast::Expression {
         node: ast::ExpressionType::Identifier { value: String::from(<>) }
     },
+};
+
+Type: ast::Type = {
+    // Static size
+    "uint" => ast::Type::Uint256,
+    "uint256" => ast::Type::Uint256,
+    "int" => ast::Type::Int256,
+    "int256" => ast::Type::Int256,
+    "bytes32" => ast::Type::Bytes32,
+    "bool" => ast::Type::Bool,
+
+    // Dynamic Size
+    "bytes" => ast::Type::Bytes,
+    "string" => ast::Type::String,
+    "address" => ast::Type::Address,
 };

@@ -24,7 +24,7 @@ pub enum StatementType {
     },
     // Global + Local Statement
     InitializerStatement {
-        variable_type: Box<Expression>,
+        variable_type: Type,
         variable_name: Box<Expression>,
     },
     // Local Statement
@@ -138,4 +138,21 @@ pub enum Operator {
     BitAnd,
     BitXor,
     BitOr,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Type {
+    // Static size
+    Uint256,
+    Int256,
+    Bytes32,
+    Bool,
+
+    // Dynamic size
+    Bytes,
+    String,
+    Address,
+    // To be supported..
+    // Mapping,
+    // Var,
 }

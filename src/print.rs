@@ -48,7 +48,7 @@ pub fn stmt_to_str(node: &ast::StatementType) -> PrintAST {
             variable_name: var_name,
         } => {
             let repr = String::from("[ Initializer Statement ] ");
-            let variable_type = expr_to_str(&var_type.node);
+            let variable_type = type_to_str(&var_type);
             let variable_name = expr_to_str(&var_name.node);
 
             let children_size = variable_type.size + variable_name.size;
@@ -559,6 +559,60 @@ pub fn operator_to_str(node: &ast::Operator) -> PrintAST {
         ast::Operator::BitOr => PrintAST {
             repr: String::from("[ bit-op : | ] "),
             size: 15,
+            left_margin: 0,
+            right_margin: 0,
+            children: vec![],
+        },
+    }
+}
+
+pub fn type_to_str(node: &ast::Type) -> PrintAST {
+    match node {
+        ast::Type::Uint256 => PrintAST {
+            repr: String::from("[ type : uint256 ] "),
+            size: 19,
+            left_margin: 0,
+            right_margin: 0,
+            children: vec![],
+        },
+        ast::Type::Int256 => PrintAST {
+            repr: String::from("[ type : int256 ] "),
+            size: 18,
+            left_margin: 0,
+            right_margin: 0,
+            children: vec![],
+        },
+        ast::Type::Bytes32 => PrintAST {
+            repr: String::from("[ type : bytes32 ] "),
+            size: 19,
+            left_margin: 0,
+            right_margin: 0,
+            children: vec![],
+        },
+        ast::Type::Bool => PrintAST {
+            repr: String::from("[ type : bool ] "),
+            size: 16,
+            left_margin: 0,
+            right_margin: 0,
+            children: vec![],
+        },
+        ast::Type::Bytes => PrintAST {
+            repr: String::from("[ type : bytes ] "),
+            size: 17,
+            left_margin: 0,
+            right_margin: 0,
+            children: vec![],
+        },
+        ast::Type::String => PrintAST {
+            repr: String::from("[ type : string ] "),
+            size: 18,
+            left_margin: 0,
+            right_margin: 0,
+            children: vec![],
+        },
+        ast::Type::Address => PrintAST {
+            repr: String::from("[ type : address ] "),
+            size: 19,
             left_margin: 0,
             right_margin: 0,
             children: vec![],
