@@ -188,3 +188,15 @@ fn test_print_initializer_expression_ast1() {
         "      [ Initializer Statement ]       \n[ type : uint256 ] [ Identifier : i ] \n"
     );
 }
+
+#[test]
+fn test_print_initializer_expression_ast2() {
+    use zoker::ProgramParser as parser;
+    let stmt = parser::new().parse("uint i;").unwrap();
+
+    let ast = print::program_to_str(&stmt);
+    assert_eq!(
+        ast.print_ast(),
+        "             [ Program ]              \n      [ Initializer Statement ]       \n[ type : uint256 ] [ Identifier : i ] \n"
+    );
+}

@@ -18,6 +18,30 @@ fn get_margin(repr_size: usize, children_size: usize) -> (usize, usize) {
     }
 }
 
+pub fn program_to_str(node: &ast::Program) -> PrintAST {
+    match node {
+        ast::Program::GlobalStatements(stmts) => {
+            let children = stmts
+                .iter()
+                .map(|stmt| stmt_to_str(&stmt.node))
+                .collect::<Vec<_>>();
+            let repr = String::from("[ Program ] ");
+            let children_size = children.iter().fold(0, |v, child| v + child.size);
+            let size = usize::max(repr.len(), children_size);
+
+            let mut ast = PrintAST {
+                repr,
+                size,
+                left_margin: 0,
+                right_margin: 0,
+                children,
+            };
+            ast.add_children_margin();
+            ast
+        }
+    }
+}
+
 pub fn stmt_to_str(node: &ast::StatementType) -> PrintAST {
     match node {
         ast::StatementType::FunctionStatement {
