@@ -144,21 +144,31 @@ pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
         }
         ast::ExpressionType::InitializerExpression {
             variable_type: var_type,
-            variable_name: var_name,
+            variable: var_name,
+            default: default_val,
         } => {
             let repr = String::from("[ Initializer Statement ] ");
             let variable_type = type_to_str(&var_type);
             let variable_name = expr_to_str(&var_name.node);
-
-            let children_size = variable_type.size + variable_name.size;
-            let size = usize::max(repr.len(), children_size);
+            let size;
+            let children;
+            if let Some(default) = default_val {
+                let default_value = expr_to_str(&default.node);
+                let children_size = variable_type.size + variable_name.size + default_value.size;
+                size = usize::max(repr.len(), children_size);
+                children = vec![variable_type, variable_name, default_value];
+            } else {
+                let children_size = variable_type.size + variable_name.size;
+                size = usize::max(repr.len(), children_size);
+                children = vec![variable_type, variable_name];
+            }
 
             let mut ast = PrintAST {
                 repr,
                 size,
                 left_margin: 0,
                 right_margin: 0,
-                children: vec![variable_type, variable_name],
+                children,
             };
             ast.add_children_margin();
             ast

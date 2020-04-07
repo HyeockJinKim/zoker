@@ -61,12 +61,14 @@ pub Statement: ast::Statement = {
 };
 
 InitializerExpression: ast::Expression = {
-    <var_type:Type> <var_name:Identifier> => ast::Expression {
+    // TODO: Initializer Expression should be moved to Statement.
+    <var_type:Type> <var_name: Identifier> <default:("=" Expression)?> => ast::Expression {
         node: ast::ExpressionType::InitializerExpression {
             variable_type: var_type,
-            variable_name: Box::new(var_name),
+            variable: Box::new(var_name),
+            default: default.map_or(None, |x| Some(Box::new(x.1))),
         }
-    }
+    },
 };
 
 CompoundStatement: ast::Statement = {

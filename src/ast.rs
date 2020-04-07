@@ -48,7 +48,8 @@ pub enum ExpressionType {
     },
     InitializerExpression {
         variable_type: Type,
-        variable_name: Box<Expression>,
+        variable: Box<Expression>,
+        default: Option<Box<Expression>>,
     },
     FunctionCallExpression {
         function_name: Box<Expression>,
