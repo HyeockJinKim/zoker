@@ -1,5 +1,4 @@
-use zoker_parser;
-use zoker_parser::location::Location;
+use zoker::location::Location;
 
 #[test]
 fn test_location_new() {

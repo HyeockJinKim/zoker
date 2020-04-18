@@ -2,7 +2,7 @@
 #[macro_use]
 extern crate assert_matches;
 
-use zoker_parser::{ast, error, zoker};
+use zoker::{ast, error, zoker_parser};
 
 fn check_bin_expr_in_expr(
     expression: ast::ExpressionType,
@@ -30,7 +30,7 @@ fn check_number_in_expression(expression: ast::ExpressionType) -> Result<i32, er
 
 #[test]
 fn test_arithmetic_expression_ast1() {
-    use zoker::ExpressionParser as parser;
+    use zoker_parser::ExpressionParser as parser;
     let expr = parser::new().parse("22 * 44 + 66").unwrap();
 
     // Obtain an AST of "(22 * 44) + 66".
@@ -65,7 +65,7 @@ fn test_arithmetic_expression_ast1() {
 
 #[test]
 fn test_arithmetic_expression_ast2() {
-    use zoker::ExpressionParser as parser;
+    use zoker_parser::ExpressionParser as parser;
     let expr = parser::new().parse("66 + 22 * 44").unwrap();
 
     // Obtain an AST of "66 + (22 * 44)".

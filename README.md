@@ -24,4 +24,4 @@ This project is licensed under the MIT license. Please see the [LICENSE][LICENSE
 
 [lalrpop]: https://github.com/lalrpop/lalrpop 
 [LICENSE]: LICENSE
-[zoker.lalrpop]: src/zoker.lalrpop
+[zoker.lalrpop]: src/zoker_parser.lalrpop
