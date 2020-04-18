@@ -9,5 +9,5 @@ pub mod location;
 pub mod print;
 lalrpop_mod!(
     #[allow(clippy::all)]
-    pub zoker_parser
+    pub zok
 );
