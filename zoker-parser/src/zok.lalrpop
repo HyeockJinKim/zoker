@@ -8,19 +8,19 @@ grammar;
 // All `pub`s are used for dev env.
 // Only consume Global Statements
 pub Program: ast::Program = {
-    <GlobalStatements> => ast::Program::GlobalStatements(<>),
+    <g:GlobalStatements> => ast::Program::GlobalStatements(g),
 };
 
 GlobalStatements: Vec<ast::Statement> = {
-    <mut stmts:GlobalStatements> <stmt:GlobalStatement> => {
+    <mut stmts:GlobalStatements> <stmt:GlobalStatement> ";" => {
         stmts.push(stmt);
         stmts
     },
-    <stmt:GlobalStatement> => vec![stmt]
+    <stmt:GlobalStatement> ";" => vec![stmt]
 };
 
 pub GlobalStatement: ast::Statement = {
-    <expr:Expression> ";" => ast::Statement {
+    <expr:Expression> => ast::Statement {
         node: ast::StatementType::Expression {
             expression: Box::new(expr),
         },
@@ -495,6 +495,6 @@ extern {
         "," => lexer::Tok::Comma,
         // Identifier
         name => lexer::Tok::Identifier { name: <String> },
-        number => lexer::Tok::Number { number: <u64> }
+        number => lexer::Tok::Num { number: <u64> },
     }
 }

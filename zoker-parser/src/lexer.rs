@@ -22,38 +22,6 @@ pub fn make_tokenizer<'a>(source: &'a str) -> impl Iterator<Item = LexResult> + 
 
 fn get_keywords() -> HashMap<String, Tok> {
     let mut keywords = HashMap::new();
-
-    keywords.insert(String::from("+"), Tok::Plus);
-    keywords.insert(String::from("-"), Tok::Minus);
-    keywords.insert(String::from("*"), Tok::Mul);
-    keywords.insert(String::from("/"), Tok::Div);
-    keywords.insert(String::from("%"), Tok::Mod);
-    keywords.insert(String::from("**"), Tok::Pow);
-    keywords.insert(String::from("!"), Tok::Not);
-    keywords.insert(String::from("++"), Tok::PlusPlus);
-    keywords.insert(String::from("--"), Tok::MinusMinus);
-    keywords.insert(String::from("="), Tok::Assign);
-    keywords.insert(String::from("&="), Tok::BitAndAssign);
-    keywords.insert(String::from("^="), Tok::BitXorAssign);
-    keywords.insert(String::from("|="), Tok::BitOrAssign);
-    keywords.insert(String::from("<<="), Tok::LShiftAssign);
-    keywords.insert(String::from(">>="), Tok::RShiftAssign);
-    keywords.insert(String::from("+="), Tok::AddAssign);
-    keywords.insert(String::from("-="), Tok::SubAssign);
-    keywords.insert(String::from("*="), Tok::MulAssign);
-    keywords.insert(String::from("/="), Tok::DivAssign);
-    keywords.insert(String::from("%="), Tok::ModAssign);
-    keywords.insert(String::from("<"), Tok::Lt);
-    keywords.insert(String::from("<="), Tok::Le);
-    keywords.insert(String::from(">"), Tok::Gt);
-    keywords.insert(String::from(">="), Tok::Ge);
-    keywords.insert(String::from("=="), Tok::Eq);
-    keywords.insert(String::from("!="), Tok::NotEq);
-    keywords.insert(String::from("&&"), Tok::And);
-    keywords.insert(String::from("||"), Tok::Or);
-    keywords.insert(String::from("&"), Tok::BitAnd);
-    keywords.insert(String::from("|"), Tok::BitOr);
-    keywords.insert(String::from("^"), Tok::BitXor);
     keywords.insert(String::from("uint256"), Tok::Uint256);
     keywords.insert(String::from("uint"), Tok::Uint256);
     keywords.insert(String::from("int256"), Tok::Int256);
@@ -68,11 +36,6 @@ fn get_keywords() -> HashMap<String, Tok> {
     keywords.insert(String::from("else"), Tok::Else);
     keywords.insert(String::from("for"), Tok::For);
     keywords.insert(String::from("in"), Tok::In);
-    keywords.insert(String::from("("), Tok::LPar);
-    keywords.insert(String::from(")"), Tok::RPar);
-    keywords.insert(String::from("{"), Tok::LBrace);
-    keywords.insert(String::from("}"), Tok::RBrace);
-    keywords.insert(String::from(";"), Tok::Semi);
 
     keywords
 }
@@ -81,7 +44,7 @@ impl<T> Lexer<T>
 where
     T: Iterator<Item = char>,
 {
-    pub fn new(input: T) -> Self {
+    fn new(input: T) -> Self {
         Lexer {
             chars: input,
             location: Location::new(0, 0),
@@ -91,20 +54,23 @@ where
     }
 
     fn next_token(&mut self) -> LexResult {
-        let start = self.location;
-        self.next_char();
-        let token = if let Some(c) = self.chr {
-            if self.is_identifier_start(c) {
+        if self.chr.is_none() {
+            self.next_char();
+        }
+        if let Some(c) = self.chr {
+            let start = self.location;
+            let token = if self.is_identifier_start(c) {
                 self.consume_identifier(c)?
             } else {
                 self.consume_special_character(c)?
-            }
+            };
+            let end = self.location;
+            self.skip_blank();
+            Ok((start, token, end))
         } else {
-            // EOF
-            Tok::EOF
-        };
-        let end = self.location;
-        Ok((start, token, end))
+            // End Of File
+            Ok((self.location, Tok::EOF, self.location))
+        }
     }
 
     fn next_char(&mut self) {
@@ -123,10 +89,26 @@ where
         c == '_' || is_xid_start(c)
     }
 
+    fn is_blank(&self, c: char) -> bool {
+        c == ' ' || c == '\n' || c == '\t'
+    }
+
     fn is_identifier_continue(&self, c: char) -> bool {
         match c {
             '_' | '0'..='9' => true,
             c => is_xid_continue(c),
+        }
+    }
+
+    fn skip_blank(&mut self) {
+        loop {
+            if let Some(c) = self.chr {
+                if self.is_blank(c) {
+                    self.next_char();
+                    continue;
+                }
+            }
+            break;
         }
     }
 
@@ -157,9 +139,155 @@ where
         match c {
             '0'..='9' => self.lex_number(c),
             '"' | '\'' => self.lex_literal(c),
-            _ => Err(LexicalError {
-                error: LexicalErrorType::UnrecognizedToken,
-            }),
+            _ => self.consume_multiple_special_character(),
+        }
+    }
+
+    fn consume_multiple_special_character(&mut self) -> Result<Tok, LexicalError> {
+        let mut text = String::new();
+        let mut token = None;
+        while let Some(c) = self.chr {
+            text.push(c);
+            match text.as_str() {
+                "<" => token = Some(Tok::Lt),
+                ">" => token = Some(Tok::Gt),
+                "=" => token = Some(Tok::Assign),
+                "+" => token = Some(Tok::Plus),
+                "-" => token = Some(Tok::Minus),
+                "*" => token = Some(Tok::Mul),
+                "/" => token = Some(Tok::Div),
+                "%" => token = Some(Tok::Mod),
+                "!" => token = Some(Tok::Not),
+                "&" => token = Some(Tok::BitAnd),
+                "|" => token = Some(Tok::BitOr),
+                "^" => token = Some(Tok::BitXor),
+                "<<" => token = Some(Tok::LShift),
+                ">>" => token = Some(Tok::RShift),
+                "," => {
+                    token = Some(Tok::Comma);
+                    break;
+                }
+                "{" => {
+                    token = Some(Tok::LBrace);
+                    break;
+                }
+                "}" => {
+                    token = Some(Tok::RBrace);
+                    break;
+                }
+                "(" => {
+                    token = Some(Tok::LPar);
+                    break;
+                }
+                ")" => {
+                    token = Some(Tok::RPar);
+                    break;
+                }
+                ";" => {
+                    token = Some(Tok::Semi);
+                    break;
+                }
+                "**" => {
+                    token = Some(Tok::Pow);
+                    break;
+                }
+                "++" => {
+                    token = Some(Tok::PlusPlus);
+                    break;
+                }
+                "--" => {
+                    token = Some(Tok::MinusMinus);
+                    break;
+                }
+                "&=" => {
+                    token = Some(Tok::BitAndAssign);
+                    break;
+                }
+                "|=" => {
+                    token = Some(Tok::BitOrAssign);
+                    break;
+                }
+                "^=" => {
+                    token = Some(Tok::BitXorAssign);
+                    break;
+                }
+                "+=" => {
+                    token = Some(Tok::AddAssign);
+                    break;
+                }
+                "-=" => {
+                    token = Some(Tok::SubAssign);
+                    break;
+                }
+                "*=" => {
+                    token = Some(Tok::MulAssign);
+                    break;
+                }
+                "/=" => {
+                    token = Some(Tok::DivAssign);
+                    break;
+                }
+                "%=" => {
+                    token = Some(Tok::ModAssign);
+                    break;
+                }
+                "==" => {
+                    token = Some(Tok::Eq);
+                    break;
+                }
+                "!=" => {
+                    token = Some(Tok::NotEq);
+                    break;
+                }
+                "<=" => {
+                    token = Some(Tok::Le);
+                    break;
+                }
+                ">=" => {
+                    token = Some(Tok::Ge);
+                    break;
+                }
+                "&&" => {
+                    token = Some(Tok::And);
+                    break;
+                }
+                "||" => {
+                    token = Some(Tok::Or);
+                    break;
+                }
+                "<<=" => {
+                    token = Some(Tok::LShiftAssign);
+                    break;
+                }
+                ">>=" => {
+                    token = Some(Tok::RShiftAssign);
+                    break;
+                }
+                _ => {
+                    if let Some(t) = token {
+                        return Ok(t);
+                    } else {
+                        return Err(LexicalError {
+                            error: LexicalErrorType::UnrecognizedToken {
+                                tok: self.chr.unwrap(),
+                            },
+                            location: self.location,
+                        });
+                    }
+                }
+            }
+            self.next_char();
+        }
+        self.next_char();
+        if let Some(t) = token {
+            Ok(t)
+        } else {
+            Err(LexicalError {
+                error: LexicalErrorType::UnrecognizedToken {
+                    tok: self.chr.unwrap(),
+                },
+                location: self.location,
+            })
         }
     }
 
@@ -178,8 +306,7 @@ where
                 break;
             }
         }
-
-        Ok(Tok::Number {
+        Ok(Tok::Num {
             number: u64::from_str(&text)?,
         })
     }
@@ -189,7 +316,6 @@ where
         let first = c;
         loop {
             self.next_char();
-            // TODO: Should be added _ decorator.
             if let Some(c) = self.chr {
                 if first == c {
                     break;
@@ -208,7 +334,6 @@ where
     T: Iterator<Item = char>,
 {
     type Item = LexResult;
-
     fn next(&mut self) -> Option<Self::Item> {
         let token = self.next_token();
 

@@ -8,6 +8,9 @@ pub enum Tok {
     Mod,
     // Power Operator
     Pow,
+    // Shift operator
+    LShift,
+    RShift,
     // Unary Operator
     Plus,
     Minus,
@@ -68,7 +71,7 @@ pub enum Tok {
     Semi,
     Comma,
     // variable
-    Number { number: u64 },
+    Num { number: u64 },
     Identifier { name: String },
     Literal { literal: String },
     EOF,

@@ -11,8 +11,8 @@ fn test_location_new() {
 fn test_location_reset() {
     let mut loc = Location::new(3, 7);
     loc.reset();
-    assert_eq!(loc.row(), 1);
-    assert_eq!(loc.column(), 1);
+    assert_eq!(loc.row(), 0);
+    assert_eq!(loc.column(), 0);
 }
 
 #[test]
