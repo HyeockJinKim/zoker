@@ -77,7 +77,7 @@ pub enum ExpressionType {
         arguments: Vec<Expression>,
     },
     Number {
-        value: i32,
+        value: u64,
     },
     Identifier {
         value: String,

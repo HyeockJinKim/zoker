@@ -1,5 +1,7 @@
-use std::str::FromStr;
 use crate::ast;
+use crate::error::LexicalError;
+use crate::lexer;
+use crate::location;
 
 grammar;
 
@@ -392,14 +394,14 @@ Terminal: ast::Expression = {
 };
 
 Number: ast::Expression = {
-    r"[0-9]+" => ast::Expression {
-        node: ast::ExpressionType::Number { value: i32::from_str(<>).unwrap() }
+    number => ast::Expression {
+        node: ast::ExpressionType::Number { value: <> }
     },
 };
 
 Identifier: ast::Expression = {
-    r"[a-zA-Z][_a-zA-Z0-9]*" => ast::Expression {
-        node: ast::ExpressionType::Identifier { value: String::from(<>) }
+    name => ast::Expression {
+        node: ast::ExpressionType::Identifier { value: <> }
     },
 };
 
@@ -417,3 +419,82 @@ Type: ast::Type = {
     "string" => ast::Type::String,
     "address" => ast::Type::Address,
 };
+
+
+// Hook external lexer:
+extern {
+    type Location = location::Location;
+    type Error = LexicalError;
+
+    enum lexer::Tok {
+        "*" => lexer::Tok::Mul,
+        "/" => lexer::Tok::Div,
+        "%" => lexer::Tok::Mod,
+        // Power Operator
+        "**" => lexer::Tok::Pow,
+        // Unary Operator
+        "+" => lexer::Tok::Plus,
+        "-" => lexer::Tok::Minus,
+        "!" => lexer::Tok::Not,
+        // Increment Operator
+        "++" => lexer::Tok::PlusPlus,
+        "--" => lexer::Tok::MinusMinus,
+        // Assign operator
+        "=" => lexer::Tok::Assign,
+        // Augmented Assign Operator
+        "&=" => lexer::Tok::BitAndAssign,
+        "^=" => lexer::Tok::BitXorAssign,
+        "|=" => lexer::Tok::BitOrAssign,
+        "<<=" => lexer::Tok::LShiftAssign,
+        ">>=" => lexer::Tok::RShiftAssign,
+        "+=" => lexer::Tok::AddAssign,
+        "-=" => lexer::Tok::SubAssign,
+        "*=" => lexer::Tok::MulAssign,
+        "/=" => lexer::Tok::DivAssign,
+        "%=" => lexer::Tok::ModAssign,
+        // Comparison Operator
+        "<" => lexer::Tok::Lt,
+        "<=" => lexer::Tok::Le,
+        ">" => lexer::Tok::Gt,
+        ">=" => lexer::Tok::Ge,
+        "==" => lexer::Tok::Eq,
+        "!=" => lexer::Tok::NotEq,
+        // Logical Operator
+        "&&" => lexer::Tok::And,
+        "||" => lexer::Tok::Or,
+        // Bit Operator
+        "&" => lexer::Tok::BitAnd,
+        "^" => lexer::Tok::BitXor,
+        "|" => lexer::Tok::BitOr,
+
+        // Type
+        // Static size
+        "uint" => lexer::Tok::Uint256,
+        "uint256" => lexer::Tok::Uint256,
+        "int" => lexer::Tok::Int256,
+        "int256" => lexer::Tok::Int256,
+        "bytes32" => lexer::Tok::Bytes32,
+        "bool" => lexer::Tok::Bool,
+        // Dynamic size
+        "bytes" => lexer::Tok::Bytes,
+        "string" => lexer::Tok::String,
+        "address" => lexer::Tok::Address,
+
+        // Keyword
+        "function" => lexer::Tok::Function,
+        "if" => lexer::Tok::If,
+        "else" => lexer::Tok::Else,
+        "for" => lexer::Tok::For,
+        "in" => lexer::Tok::In,
+        // Mark
+        "(" => lexer::Tok::LPar,
+        ")" => lexer::Tok::RPar,
+        "{" => lexer::Tok::LBrace,
+        "}" => lexer::Tok::RBrace,
+        ";" => lexer::Tok::Semi,
+        "," => lexer::Tok::Comma,
+        // Identifier
+        name => lexer::Tok::Identifier { name: <String> },
+        number => lexer::Tok::Number { number: <u64> }
+    }
+}

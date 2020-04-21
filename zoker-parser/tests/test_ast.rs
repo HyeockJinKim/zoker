@@ -19,7 +19,7 @@ fn check_bin_expr_in_expr(
     }
 }
 
-fn check_number_in_expression(expression: ast::ExpressionType) -> Result<i32, error::ParseError> {
+fn check_number_in_expression(expression: ast::ExpressionType) -> Result<u64, error::ParseError> {
     match expression {
         ast::ExpressionType::Number { value: v } => Ok(v),
         _ => Err(error::ParseError {

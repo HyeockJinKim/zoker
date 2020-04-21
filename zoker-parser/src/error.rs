@@ -8,9 +8,28 @@ pub struct ParseError {
 }
 
 #[derive(Debug, PartialEq)]
+pub struct LexicalError {
+    pub error: LexicalErrorType,
+    // pub location: Location,
+}
+
+#[derive(Debug, PartialEq)]
 pub enum ParseErrorType {
     InvalidToken,
     UnrecognizedToken,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum LexicalErrorType {
+    UnrecognizedToken,
+}
+
+impl From<std::num::ParseIntError> for LexicalError {
+    fn from(_: std::num::ParseIntError) -> Self {
+        LexicalError {
+            error: LexicalErrorType::UnrecognizedToken,
+        }
+    }
 }
 
 impl fmt::Display for ParseError {
