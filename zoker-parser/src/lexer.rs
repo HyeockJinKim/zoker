@@ -5,6 +5,7 @@ pub use crate::token::Tok;
 pub type Spanned = (Location, Tok, Location);
 pub type LexResult = Result<Spanned, LexicalError>;
 
+use num_bigint::BigUint;
 use std::collections::HashMap;
 use std::str::FromStr;
 use unic_ucd_ident::{is_xid_continue, is_xid_start};
@@ -289,7 +290,6 @@ where
         text.push(c);
         loop {
             self.next_char();
-            // TODO: Should be added _ decorator.
             if let Some(c) = self.chr {
                 match c {
                     '0'..='9' => text.push(c),
@@ -318,7 +318,7 @@ where
             }
         }
         Ok(Tok::Num {
-            number: u64::from_str(&text)?,
+            number: BigUint::from_str(&text)?,
         })
     }
 

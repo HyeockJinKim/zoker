@@ -1,3 +1,5 @@
+use num_bigint::BigUint;
+
 use crate::location::Location;
 
 // https://rust-lang.github.io/rust-clippy/master/index.html#large_enum_variant
@@ -9,7 +11,6 @@ pub enum Program {
 
 #[derive(Debug, PartialEq)]
 pub struct Located<T> {
-    // TODO: After customizing the lexer, get the location value.
     pub location: Location,
     pub node: T,
 }
@@ -79,7 +80,7 @@ pub enum ExpressionType {
         arguments: Vec<Expression>,
     },
     Number {
-        value: u64,
+        value: BigUint,
     },
     Identifier {
         value: String,

@@ -78,3 +78,9 @@ fn test_number_parser() {
     assert!(parser::parse_expression("1_2__1").is_err());
     assert!(parser::parse_expression("1_2_").is_err());
 }
+
+#[test]
+fn test_bigint_parser() {
+    let bigint = parser::parse_expression("1_021_000_000_000_000_000_000_000_000_000_000_000_000_000_000_000_000_000_000_000_000_000_000_000_000_000_000_000_000");
+    assert!(bigint.is_ok());
+}

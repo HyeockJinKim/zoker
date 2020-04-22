@@ -40,7 +40,6 @@ pub enum LexicalErrorType {
 impl From<LalrpopError<Location, Tok, LexicalError>> for ParseError {
     fn from(err: LalrpopError<Location, Tok, LexicalError>) -> Self {
         match err {
-            // TODO: Are there cases where this isn't an EOF?
             LalrpopError::InvalidToken { location } => ParseError {
                 error: ParseErrorType::EOF,
                 location,
@@ -73,8 +72,9 @@ impl From<LalrpopError<Location, Tok, LexicalError>> for ParseError {
         }
     }
 }
-impl From<std::num::ParseIntError> for LexicalError {
-    fn from(_err: std::num::ParseIntError) -> Self {
+
+impl From<num_bigint::ParseBigIntError> for LexicalError {
+    fn from(_err: num_bigint::ParseBigIntError) -> Self {
         LexicalError {
             error: LexicalErrorType::UnrecognizedToken { tok: 'c' },
             location: Default::default(),

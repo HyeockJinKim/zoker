@@ -3,6 +3,8 @@ use crate::error::LexicalError;
 use crate::lexer;
 use crate::location;
 
+use num_bigint::BigUint;
+
 grammar;
 
 // All `pub`s are used for dev env.
@@ -522,6 +524,6 @@ extern {
         "," => lexer::Tok::Comma,
         // Identifier
         name => lexer::Tok::Identifier { name: <String> },
-        number => lexer::Tok::Num { number: <u64> },
+        number => lexer::Tok::Num { number: <BigUint> },
     }
 }
