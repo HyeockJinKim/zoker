@@ -1,3 +1,5 @@
+use crate::location::Location;
+
 // https://rust-lang.github.io/rust-clippy/master/index.html#large_enum_variant
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, PartialEq)]
@@ -8,7 +10,7 @@ pub enum Program {
 #[derive(Debug, PartialEq)]
 pub struct Located<T> {
     // TODO: After customizing the lexer, get the location value.
-    // pub location: Location,
+    pub location: Location,
     pub node: T,
 }
 

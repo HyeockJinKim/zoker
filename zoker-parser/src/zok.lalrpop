@@ -20,7 +20,8 @@ GlobalStatements: Vec<ast::Statement> = {
 };
 
 pub GlobalStatement: ast::Statement = {
-    <expr:Expression> => ast::Statement {
+    <location:@L> <expr:Expression> => ast::Statement {
+        location,
         node: ast::StatementType::Expression {
             expression: Box::new(expr),
         },
@@ -29,7 +30,8 @@ pub GlobalStatement: ast::Statement = {
 };
 
 FunctionStatement: ast::Statement = {
-    "function" <id:Identifier> <params:Parameters> <stmt:CompoundStatement> => ast::Statement {
+    <location:@L> "function" <id:Identifier> <params:Parameters> <stmt:CompoundStatement> => ast::Statement {
+        location,
         node: ast::StatementType::FunctionStatement {
             function_name: Box::new(id),
             parameters: Box::new(params),
@@ -54,7 +56,8 @@ Statements: Vec<ast::Statement> = {
 /// Expression
 pub Statement: ast::Statement = {
     CompoundStatement,
-    <expr:Expression> => ast::Statement {
+    <location:@L> <expr:Expression> => ast::Statement {
+        location,
         node: ast::StatementType::Expression {
             expression: Box::new(expr),
         },
@@ -64,7 +67,8 @@ pub Statement: ast::Statement = {
 
 InitializerExpression: ast::Expression = {
     // TODO: Initializer Expression should be moved to Statement.
-    <var_type:Type> <var_name: Identifier> <default:("=" Expression)?> => ast::Expression {
+    <location:@L> <var_type:Type> <var_name: Identifier> <default:("=" Expression)?> => ast::Expression {
+        location,
         node: ast::ExpressionType::InitializerExpression {
             variable_type: var_type,
             variable: Box::new(var_name),
@@ -74,7 +78,8 @@ InitializerExpression: ast::Expression = {
 };
 
 CompoundStatement: ast::Statement = {
-    "{" <stmt:Statements?> <return_value:Expression?>"}" => ast::Statement {
+    <location:@L> "{" <stmt:Statements?> <return_value:Expression?>"}" => ast::Statement {
+        location,
         node: ast::StatementType::CompoundStatement {
             statements: stmt.map_or(vec![], |x| x),
             return_value: return_value.map_or(None, |x| Some(Box::new(x))),
@@ -83,7 +88,8 @@ CompoundStatement: ast::Statement = {
 };
 
 IfExpression: ast::Expression = {
-    "if" <expr:Expression> <if_stmt:CompoundStatement> <else_stmt:("else" CompoundStatement)?> => ast::Expression {
+    <location:@L> "if" <expr:Expression> <if_stmt:CompoundStatement> <else_stmt:("else" CompoundStatement)?> => ast::Expression {
+        location,
         node: ast::ExpressionType::IfExpression {
             condition: Box::new(expr),
             if_statement: Box::new(if_stmt),
@@ -93,7 +99,8 @@ IfExpression: ast::Expression = {
 };
 
 ForEachExpression: ast::Expression = {
-    "for" <iter:Expression> "in" <vector:Expression> <stmt:CompoundStatement> <else_stmt:("else" CompoundStatement)?> => ast::Expression {
+    <location:@L> "for" <iter:Expression> "in" <vector:Expression> <stmt:CompoundStatement> <else_stmt:("else" CompoundStatement)?> => ast::Expression {
+        location,
         node: ast::ExpressionType::ForEachExpression {
             iterator: Box::new(iter),
             vector: Box::new(vector),
@@ -129,8 +136,9 @@ pub Expression: ast::Expression = {
 };
 
 FunctionCallExpression: ast::Expression = {
-    <id:Identifier> <args:Arguments> => ast::Expression {
-    node: ast::ExpressionType::FunctionCallExpression {
+    <location:@L> <id:Identifier> <args:Arguments> => ast::Expression {
+        location,
+        node: ast::ExpressionType::FunctionCallExpression {
             function_name: Box::new(id),
             arguments: Box::new(args),
         }
@@ -143,7 +151,8 @@ BinaryExpression: ast::Expression = {
 };
 
 AssignExpression: ast::Expression = {
-    <l:Identifier> <op:AssignOperator> <r:Expression> => ast::Expression {
+    <l:Identifier> <location:@L> <op:AssignOperator> <r:Expression> => ast::Expression {
+        location,
         node: ast::ExpressionType::AssignExpression {
             left: Box::new(l),
             operator: op,
@@ -167,7 +176,8 @@ AssignOperator: ast::Operator = {
 };
 
 LogicalOrExpression: ast::Expression = {
-    <l:LogicalOrExpression> "||" <r:LogicalAndExpression> => ast::Expression {
+    <l:LogicalOrExpression> <location:@L> "||" <r:LogicalAndExpression> => ast::Expression {
+        location,
         node: ast::ExpressionType::BinaryExpression {
             left: Box::new(l),
             operator: ast::Operator::Or,
@@ -178,7 +188,8 @@ LogicalOrExpression: ast::Expression = {
 };
 
 LogicalAndExpression: ast::Expression = {
-    <l:LogicalAndExpression> "&&" <r:BitOrExpression> => ast::Expression {
+    <l:LogicalAndExpression> <location:@L> "&&" <r:BitOrExpression> => ast::Expression {
+        location,
         node: ast::ExpressionType::BinaryExpression {
             left: Box::new(l),
             operator: ast::Operator::And,
@@ -189,7 +200,8 @@ LogicalAndExpression: ast::Expression = {
 };
 
 BitOrExpression: ast::Expression = {
-    <l:BitOrExpression> "|" <r:BitXorExpression> => ast::Expression {
+    <l:BitOrExpression> <location:@L> "|" <r:BitXorExpression> => ast::Expression {
+        location,
         node: ast::ExpressionType::BinaryExpression {
             left: Box::new(l),
             operator: ast::Operator::BitOr,
@@ -200,7 +212,8 @@ BitOrExpression: ast::Expression = {
 };
 
 BitXorExpression: ast::Expression = {
-    <l:BitXorExpression> "^" <r:BitAndExpression> => ast::Expression {
+    <l:BitXorExpression> <location:@L> "^" <r:BitAndExpression> => ast::Expression {
+        location,
         node: ast::ExpressionType::BinaryExpression {
             left: Box::new(l),
             operator: ast::Operator::BitXor,
@@ -211,7 +224,8 @@ BitXorExpression: ast::Expression = {
 };
 
 BitAndExpression: ast::Expression = {
-    <l:BitAndExpression> "&" <r:ComparisonExpression1> => ast::Expression {
+    <l:BitAndExpression> <location:@L> "&" <r:ComparisonExpression1> => ast::Expression {
+        location,
         node: ast::ExpressionType::BinaryExpression {
             left: Box::new(l),
             operator: ast::Operator::BitAnd,
@@ -222,7 +236,8 @@ BitAndExpression: ast::Expression = {
 };
 
 ComparisonExpression1: ast::Expression = {
-    <l:ComparisonExpression1> <op:ComparisonOperator1> <r:ComparisonExpression2> => ast::Expression {
+    <l:ComparisonExpression1> <location:@L> <op:ComparisonOperator1> <r:ComparisonExpression2> => ast::Expression {
+        location,
         node: ast::ExpressionType::BinaryExpression {
             left: Box::new(l),
             operator: op,
@@ -238,7 +253,8 @@ ComparisonOperator1: ast::Operator = {
 };
 
 ComparisonExpression2: ast::Expression = {
-    <l:ComparisonExpression2> <op:ComparisonOperator2> <r:ArithmeticExpression1> => ast::Expression {
+    <l:ComparisonExpression2> <location:@L> <op:ComparisonOperator2> <r:ArithmeticExpression1> => ast::Expression {
+        location,
         node: ast::ExpressionType::BinaryExpression {
             left: Box::new(l),
             operator: op,
@@ -265,7 +281,8 @@ ComparisonOperator2: ast::Operator = {
 /// 3.
 /// + (addition), - (subtraction)
 ArithmeticExpression1: ast::Expression = {
-    <l:ArithmeticExpression1> <op:ArithmeticOperator1> <r:ArithmeticExpression2> => ast::Expression {
+    <l:ArithmeticExpression1> <location:@L> <op:ArithmeticOperator1> <r:ArithmeticExpression2> => ast::Expression {
+        location,
         node: ast::ExpressionType::BinaryExpression {
             left: Box::new(l),
             operator: op,
@@ -281,7 +298,8 @@ ArithmeticOperator1: ast::Operator = {
 };
 
 ArithmeticExpression2: ast::Expression = {
-    <l:ArithmeticExpression2> <op:ArithmeticOperator2> <r:PowerExpression> => ast::Expression {
+    <l:ArithmeticExpression2> <location:@L> <op:ArithmeticOperator2> <r:PowerExpression> => ast::Expression {
+        location,
         node: ast::ExpressionType::BinaryExpression {
             left: Box::new(l),
             operator: op,
@@ -298,7 +316,8 @@ ArithmeticOperator2: ast::Operator = {
 };
 
 PowerExpression: ast::Expression = {
-    <l:Value> <op:PowerOperator> <r:Value> => ast::Expression {
+    <l:Value> <location:@L> <op:PowerOperator> <r:Value> => ast::Expression {
+        location,
         node: ast::ExpressionType::BinaryExpression {
             left: Box::new(l),
             operator: op,
@@ -313,13 +332,15 @@ PowerOperator: ast::Operator = {
 };
 
 UnaryExpression: ast::Expression = {
-    <v:Terminal> <op:PostfixUnaryOperator> => ast::Expression {
+    <v:Terminal> <location:@L> <op:PostfixUnaryOperator> => ast::Expression {
+        location,
         node: ast::ExpressionType::UnaryExpression {
             operator: op,
             expression: Box::new(v),
         }
     },
-    <op:PrefixUnaryOperator> <v:Terminal> => ast::Expression {
+    <location:@L> <op:PrefixUnaryOperator> <v:Terminal> => ast::Expression {
+        location,
         node: ast::ExpressionType::UnaryExpression {
             operator: op,
             expression: Box::new(v),
@@ -350,12 +371,14 @@ ParameterList: Vec<ast::Expression> = {
 };
 
 Parameters: ast::Expression = {
-    "(" <ParameterList> ")" => ast::Expression {
+    <location:@L> "(" <param_list:ParameterList> ")" => ast::Expression {
+        location,
         node: ast::ExpressionType::Parameters {
-            parameters: <>,
+            parameters: param_list,
         }
     },
-    "(" ")" => ast::Expression {
+    <location:@L> "(" ")" => ast::Expression {
+        location,
         node: ast::ExpressionType::Parameters {
             parameters: vec![]
         }
@@ -371,12 +394,14 @@ ArgumentList: Vec<ast::Expression> = {
 };
 
 Arguments: ast::Expression = {
-    "(" <ArgumentList> ")" => ast::Expression {
+    <location:@L> "(" <arg_list:ArgumentList> ")" => ast::Expression {
+        location,
         node: ast::ExpressionType::Arguments {
-            arguments: <>
+            arguments: arg_list
         }
     },
-    "(" ")" => ast::Expression {
+    <location:@L> "(" ")" => ast::Expression {
+        location,
         node: ast::ExpressionType::Arguments {
             arguments: vec![]
         }
@@ -394,14 +419,16 @@ Terminal: ast::Expression = {
 };
 
 Number: ast::Expression = {
-    number => ast::Expression {
-        node: ast::ExpressionType::Number { value: <> }
+    <location:@L> <num:number> => ast::Expression {
+        location,
+        node: ast::ExpressionType::Number { value: num }
     },
 };
 
 Identifier: ast::Expression = {
-    name => ast::Expression {
-        node: ast::ExpressionType::Identifier { value: <> }
+    <location:@L> <id:name> => ast::Expression {
+        location,
+        node: ast::ExpressionType::Identifier { value: id }
     },
 };
 
