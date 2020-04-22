@@ -69,3 +69,12 @@ fn test_terminal_parser() {
     assert!(parser::parse_expression("a_1").is_ok());
     assert!(parser::parse_expression("A9").is_ok());
 }
+
+#[test]
+fn test_number_parser() {
+    assert!(parser::parse_expression("1_021").is_ok());
+    assert!(parser::parse_expression("1_2_1").is_ok());
+    assert!(parser::parse_expression("_1_2").is_ok());
+    assert!(parser::parse_expression("1_2__1").is_err());
+    assert!(parser::parse_expression("1_2_").is_err());
+}

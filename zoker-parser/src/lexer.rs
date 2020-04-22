@@ -263,22 +263,15 @@ where
                     token = Some(Tok::RShiftAssign);
                     break;
                 }
-                _ => {
-                    if let Some(t) = token {
-                        return Ok(t);
-                    } else {
-                        return Err(LexicalError {
-                            error: LexicalErrorType::UnrecognizedToken {
-                                tok: self.chr.unwrap(),
-                            },
-                            location: self.location,
-                        });
-                    }
-                }
+                _ => return self.check_token(token),
             }
             self.next_char();
         }
         self.next_char();
+        self.check_token(token)
+    }
+
+    fn check_token(&self, token: Option<Tok>) -> Result<Tok, LexicalError> {
         if let Some(t) = token {
             Ok(t)
         } else {
@@ -300,6 +293,24 @@ where
             if let Some(c) = self.chr {
                 match c {
                     '0'..='9' => text.push(c),
+                    '_' => {
+                        self.next_char();
+                        if let Some(c) = self.chr {
+                            if let '0'..='9' = c {
+                                text.push(c);
+                            } else {
+                                return Err(LexicalError {
+                                    error: LexicalErrorType::UnrecognizedToken { tok: c },
+                                    location: self.location,
+                                });
+                            }
+                        } else {
+                            return Err(LexicalError {
+                                error: LexicalErrorType::UnrecognizedToken { tok: c },
+                                location: self.location,
+                            });
+                        }
+                    }
                     _ => break,
                 }
             } else {
@@ -336,7 +347,6 @@ where
     type Item = LexResult;
     fn next(&mut self) -> Option<Self::Item> {
         let token = self.next_token();
-
         match token {
             Ok((_, Tok::EOF, _)) => None,
             r => Some(r),
