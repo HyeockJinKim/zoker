@@ -597,6 +597,20 @@ pub fn operator_to_str(node: &ast::Operator) -> PrintAST {
             right_margin: 0,
             children: vec![],
         },
+        ast::Operator::LShift => PrintAST {
+            repr: String::from("[ shift-op : << ] "),
+            size: 18,
+            left_margin: 0,
+            right_margin: 0,
+            children: vec![],
+        },
+        ast::Operator::RShift => PrintAST {
+            repr: String::from("[ shift-op : >> ] "),
+            size: 18,
+            left_margin: 0,
+            right_margin: 0,
+            children: vec![],
+        },
     }
 }
 

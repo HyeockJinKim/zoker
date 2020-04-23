@@ -141,6 +141,10 @@ pub enum Operator {
     BitAnd,
     BitXor,
     BitOr,
+
+    // Shift Operator
+    LShift,
+    RShift,
 }
 
 #[derive(Debug, PartialEq)]

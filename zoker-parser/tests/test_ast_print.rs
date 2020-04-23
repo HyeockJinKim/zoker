@@ -10,6 +10,24 @@ fn test_print_number() {
 }
 
 #[test]
+fn test_print_shift_expression1() {
+    let num = parser::parse_expression("22 << 66").unwrap();
+
+    let ast = print::expr_to_str(&num.node);
+    assert_eq!(ast.str(), "[ BinaryExpression ] ");
+    assert_eq!(ast.print_ast(), "              [ BinaryExpression ]                \n[ Number : 22 ] [ shift-op : << ] [ Number : 66 ] \n");
+}
+
+#[test]
+fn test_print_shift_expression2() {
+    let num = parser::parse_expression("22 >> 66").unwrap();
+
+    let ast = print::expr_to_str(&num.node);
+    assert_eq!(ast.str(), "[ BinaryExpression ] ");
+    assert_eq!(ast.print_ast(), "              [ BinaryExpression ]                \n[ Number : 22 ] [ shift-op : >> ] [ Number : 66 ] \n");
+}
+
+#[test]
 fn test_print_arithmetic_expression1() {
     let num = parser::parse_expression("22 + 66").unwrap();
 

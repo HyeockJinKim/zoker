@@ -263,7 +263,7 @@ ComparisonExpression2: ast::Expression = {
             right: Box::new(r),
         }
     },
-    ArithmeticExpression1,
+    ShiftExpression,
 };
 
 ComparisonOperator2: ast::Operator = {
@@ -271,6 +271,23 @@ ComparisonOperator2: ast::Operator = {
     "<=" => ast::Operator::Le,
     ">" => ast::Operator::Gt,
     ">=" => ast::Operator::Ge,
+};
+
+ShiftExpression: ast::Expression = {
+    <l:ShiftExpression> <location:@L> <op:ShiftOperator> <r:ArithmeticExpression1> => ast::Expression {
+        location,
+        node: ast::ExpressionType::BinaryExpression {
+            left: Box::new(l),
+            operator: op,
+            right: Box::new(r),
+        }
+    },
+    ArithmeticExpression1,
+};
+
+ShiftOperator: ast::Operator = {
+    "<<" => ast::Operator::LShift,
+    ">>" => ast::Operator::RShift,
 };
 
 /// Separate Arithmetic Expression grammar for priority
@@ -465,6 +482,9 @@ extern {
         "+" => lexer::Tok::Plus,
         "-" => lexer::Tok::Minus,
         "!" => lexer::Tok::Not,
+        // Shift Operator
+        "<<" => lexer::Tok::LShift,
+        ">>" => lexer::Tok::RShift,
         // Increment Operator
         "++" => lexer::Tok::PlusPlus,
         "--" => lexer::Tok::MinusMinus,
