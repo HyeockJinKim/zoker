@@ -10,6 +10,15 @@ fn test_print_number() {
 }
 
 #[test]
+fn test_print_ternary_expression() {
+    let num = parser::parse_expression("a==2 ? 66 : 3").unwrap();
+
+    let ast = print::expr_to_str(&num.node);
+    assert_eq!(ast.str(), "[ TernaryExpression ] ");
+    assert_eq!(ast.print_ast(), "                               [ TernaryExpression ]                                 \n                [ BinaryExpression ]                  [ Number : 66 ] [ Number : 3 ] \n[ Identifier : a ] [ compare-op : == ] [ Number : 2 ]                                \n");
+}
+
+#[test]
 fn test_print_shift_expression1() {
     let num = parser::parse_expression("22 << 66").unwrap();
 

@@ -72,6 +72,8 @@ pub enum Tok {
     RBrace,
     Semi,
     Comma,
+    Question,
+    Colon,
     // variable
     Num { number: BigUint },
     Identifier { name: String },

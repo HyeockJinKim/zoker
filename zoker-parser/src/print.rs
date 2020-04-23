@@ -120,6 +120,28 @@ pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
             ast.add_children_margin();
             ast
         }
+        ast::ExpressionType::TernaryExpression {
+            condition: cond,
+            expr1,
+            expr2,
+        } => {
+            let condition = expr_to_str(&cond.node);
+            let expression1 = expr_to_str(&expr1.node);
+            let expression2 = expr_to_str(&expr2.node);
+            let repr = String::from("[ TernaryExpression ] ");
+            let children_size = condition.size + expression1.size + expression2.size;
+            let size = usize::max(repr.len(), children_size);
+
+            let mut ast = PrintAST {
+                repr,
+                size,
+                left_margin: 0,
+                right_margin: 0,
+                children: vec![condition, expression1, expression2],
+            };
+            ast.add_children_margin();
+            ast
+        }
         ast::ExpressionType::BinaryExpression {
             left: l,
             operator: op,

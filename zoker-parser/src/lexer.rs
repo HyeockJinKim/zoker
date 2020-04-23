@@ -162,6 +162,8 @@ where
                 "&" => token = Some(Tok::BitAnd),
                 "|" => token = Some(Tok::BitOr),
                 "^" => token = Some(Tok::BitXor),
+                "?" => token = Some(Tok::Question),
+                ":" => token = Some(Tok::Colon),
                 "<<" => token = Some(Tok::LShift),
                 ">>" => token = Some(Tok::RShift),
                 "," => {

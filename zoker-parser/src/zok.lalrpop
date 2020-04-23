@@ -134,6 +134,7 @@ pub Expression: ast::Expression = {
     FunctionCallExpression,
     IfExpression,
     ForEachExpression,
+    TernaryExpression,
     BinaryExpression,
 };
 
@@ -143,6 +144,17 @@ FunctionCallExpression: ast::Expression = {
         node: ast::ExpressionType::FunctionCallExpression {
             function_name: Box::new(id),
             arguments: Box::new(args),
+        }
+    },
+};
+
+TernaryExpression: ast::Expression = {
+    <location:@L> <condition:LogicalOrExpression> "?" <expr1:Expression> ":" <expr2:Expression> => ast::Expression {
+        location,
+        node: ast::ExpressionType::TernaryExpression {
+            condition: Box::new(condition),
+            expr1: Box::new(expr1),
+            expr2: Box::new(expr2),
         }
     },
 };
@@ -540,7 +552,9 @@ extern {
         ")" => lexer::Tok::RPar,
         "{" => lexer::Tok::LBrace,
         "}" => lexer::Tok::RBrace,
+        "?" => lexer::Tok::Question,
         ";" => lexer::Tok::Semi,
+        ":" => lexer::Tok::Colon,
         "," => lexer::Tok::Comma,
         // Identifier
         name => lexer::Tok::Identifier { name: <String> },

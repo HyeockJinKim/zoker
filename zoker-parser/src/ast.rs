@@ -44,6 +44,11 @@ pub enum ExpressionType {
         operator: Operator,
         right: Box<Expression>,
     },
+    TernaryExpression {
+        condition: Box<Expression>,
+        expr1: Box<Expression>,
+        expr2: Box<Expression>,
+    },
     BinaryExpression {
         left: Box<Expression>,
         operator: Operator,
