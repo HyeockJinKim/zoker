@@ -39,7 +39,7 @@ jobs:
 
       # Test Project
       - name: Run test Test Code
-        run: cargo test --verbose
+        run: cargo test --verbose --all
 
   check_format:
     name: Check Rust code with rustfmt and clippy

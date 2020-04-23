@@ -1,5 +1,18 @@
-[workspace]
+[package]
+name = "zoker"
+version = "0.1.0"
+authors = ["HyeockJinKim <kherootz@gmail.com>"]
+edition = "2018"
+repository = "https://github.com/HyeockJinKim/zoker"
+license = "MIT"
 
-members = [
-    "zoker-parser",
-]
+[workspace]
+members = [".", "parser", "compiler"]
+
+[dependencies]
+zoker-compiler = {path = "compiler", version = "0.1.0"}
+zoker-parser = {path = "parser", version = "0.1.0"}
+
+[[bin]]
+name = "rustpython"
+path = "src/main.rs"

@@ -1,0 +1,11 @@
+[package]
+name = "zoker-compiler"
+version = "0.1.0"
+description = "Zoker compiler for using zero-knowledge in blockchain"
+authors = ["HyeockJinKim <kherootz@gmail.com>"]
+edition = "2018"
+repository = "https://github.com/HyeockJinKim/zoker"
+license = "MIT"
+
+[dependencies]
+zoker-parser = { path = "../parser", version = "0.1.0" }
