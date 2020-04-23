@@ -25,6 +25,11 @@ pub enum StatementType {
         parameters: Box<Expression>,
         statement: Box<Statement>,
     },
+    InitializerStatement {
+        variable_type: Type,
+        variable: Box<Expression>,
+        default: Option<Box<Expression>>,
+    },
     // Local Statement
     CompoundStatement {
         statements: Vec<Statement>,
@@ -54,11 +59,6 @@ pub enum ExpressionType {
         operator: Operator,
         right: Box<Expression>,
     },
-    InitializerExpression {
-        variable_type: Type,
-        variable: Box<Expression>,
-        default: Option<Box<Expression>>,
-    },
     FunctionCallExpression {
         function_name: Box<Expression>,
         arguments: Box<Expression>,
@@ -79,7 +79,7 @@ pub enum ExpressionType {
         expression: Box<Expression>,
     },
     Parameters {
-        parameters: Vec<Expression>,
+        parameters: Vec<Statement>,
     },
     Arguments {
         arguments: Vec<Expression>,

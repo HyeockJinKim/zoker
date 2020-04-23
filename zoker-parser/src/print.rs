@@ -67,6 +67,37 @@ pub fn stmt_to_str(node: &ast::StatementType) -> PrintAST {
             ast.add_children_margin();
             ast
         }
+        ast::StatementType::InitializerStatement {
+            variable_type: var_type,
+            variable: var_name,
+            default: default_val,
+        } => {
+            let repr = String::from("[ Initializer Statement ] ");
+            let variable_type = type_to_str(&var_type);
+            let variable_name = expr_to_str(&var_name.node);
+            let size;
+            let children;
+            if let Some(default) = default_val {
+                let default_value = expr_to_str(&default.node);
+                let children_size = variable_type.size + variable_name.size + default_value.size;
+                size = usize::max(repr.len(), children_size);
+                children = vec![variable_type, variable_name, default_value];
+            } else {
+                let children_size = variable_type.size + variable_name.size;
+                size = usize::max(repr.len(), children_size);
+                children = vec![variable_type, variable_name];
+            }
+
+            let mut ast = PrintAST {
+                repr,
+                size,
+                left_margin: 0,
+                right_margin: 0,
+                children,
+            };
+            ast.add_children_margin();
+            ast
+        }
         ast::StatementType::CompoundStatement {
             statements: stmts,
             return_value: returns,
@@ -160,37 +191,6 @@ pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
                 left_margin: 0,
                 right_margin: 0,
                 children: vec![left, operator, right],
-            };
-            ast.add_children_margin();
-            ast
-        }
-        ast::ExpressionType::InitializerExpression {
-            variable_type: var_type,
-            variable: var_name,
-            default: default_val,
-        } => {
-            let repr = String::from("[ Initializer Statement ] ");
-            let variable_type = type_to_str(&var_type);
-            let variable_name = expr_to_str(&var_name.node);
-            let size;
-            let children;
-            if let Some(default) = default_val {
-                let default_value = expr_to_str(&default.node);
-                let children_size = variable_type.size + variable_name.size + default_value.size;
-                size = usize::max(repr.len(), children_size);
-                children = vec![variable_type, variable_name, default_value];
-            } else {
-                let children_size = variable_type.size + variable_name.size;
-                size = usize::max(repr.len(), children_size);
-                children = vec![variable_type, variable_name];
-            }
-
-            let mut ast = PrintAST {
-                repr,
-                size,
-                left_margin: 0,
-                right_margin: 0,
-                children,
             };
             ast.add_children_margin();
             ast
@@ -312,7 +312,7 @@ pub fn expr_to_str(node: &ast::ExpressionType) -> PrintAST {
         ast::ExpressionType::Parameters { parameters: params } => {
             let children = params
                 .iter()
-                .map(|param| expr_to_str(&param.node))
+                .map(|param| stmt_to_str(&param.node))
                 .collect::<Vec<_>>();
             let repr = String::from("[ Parameters Expression ] ");
             let children_size = children.iter().fold(0, |v, child| v + child.size);

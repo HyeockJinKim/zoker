@@ -28,6 +28,7 @@ pub GlobalStatement: ast::Statement = {
             expression: Box::new(expr),
         },
     },
+    InitializerStatement,
     FunctionStatement,
 };
 
@@ -52,12 +53,13 @@ Statements: Vec<ast::Statement> = {
 
 /// Description for Statement
 /// Only consumed by function
-///
+/// InitializerStatement
 /// Compound Statement
 /// { Statements }
 /// Expression
 pub Statement: ast::Statement = {
     CompoundStatement,
+    InitializerStatement,
     <location:@L> <expr:Expression> => ast::Statement {
         location,
         node: ast::StatementType::Expression {
@@ -67,11 +69,10 @@ pub Statement: ast::Statement = {
     // TODO: For statement should be added. (No support Zkp)
 };
 
-InitializerExpression: ast::Expression = {
-    // TODO: Initializer Expression should be moved to Statement.
-    <location:@L> <var_type:Type> <var_name: Identifier> <default:("=" Expression)?> => ast::Expression {
+InitializerStatement: ast::Statement = {
+    <location:@L> <var_type:Type> <var_name: Identifier> <default:("=" Expression)?> => ast::Statement {
         location,
-        node: ast::ExpressionType::InitializerExpression {
+        node: ast::StatementType::InitializerStatement {
             variable_type: var_type,
             variable: Box::new(var_name),
             default: default.map_or(None, |x| Some(Box::new(x.1))),
@@ -130,7 +131,6 @@ ForEachExpression: ast::Expression = {
 /// - except
 /// Assign Expression ( =, &=, |=, ^=, <<=, >>=, +=, -=, *=, /=, %= )
 pub Expression: ast::Expression = {
-    InitializerExpression,
     FunctionCallExpression,
     IfExpression,
     ForEachExpression,
@@ -393,12 +393,12 @@ PostfixUnaryOperator: ast::Operator = {
     "--" => ast::Operator::PostfixMinusMinus,
 };
 
-ParameterList: Vec<ast::Expression> = {
-    <mut params:ParameterList> "," <init:InitializerExpression> => {
+ParameterList: Vec<ast::Statement> = {
+    <mut params:ParameterList> "," <init:InitializerStatement> => {
         params.push(init);
         params
     },
-    <init:InitializerExpression> => vec![init],
+    <init:InitializerStatement> => vec![init],
 };
 
 Parameters: ast::Expression = {
