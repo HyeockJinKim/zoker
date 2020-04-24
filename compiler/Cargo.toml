@@ -8,4 +8,5 @@ repository = "https://github.com/HyeockJinKim/zoker"
 license = "MIT"
 
 [dependencies]
+indexmap = "1.3.2"
 zoker-parser = { path = "../parser", version = "0.1.0" }
