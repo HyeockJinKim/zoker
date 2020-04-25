@@ -7,7 +7,7 @@ name: CI
 
 jobs:
   run_testcode:
-    name: Run zoker test code
+    name: Run zoker tests code
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -15,38 +15,33 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@master
-
       # Cache to speed up workflow
-      - name: Cache cargo registry
+      - name: Cache cargo dependencies
         uses: actions/cache@v1
         with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-      - name: Cache cargo index
-        uses: actions/cache@v1
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-      - name: Cache cargo build
-        uses: actions/cache@v1
-        with:
+          key: ${{ runner.os }}-rust_tests-${{ hashFiles('Cargo.lock') }}
           path: target
-          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
-
-      # Build Project
-      - name: Build zoker code
-        run: cargo build --verbose
-
-      # Test Project
-      - name: Run test Test Code
-        run: cargo test --verbose --all
+          restore-keys: |
+            ${{ runner.os }}-rust_tests-
+      - name: run rust tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --verbose --all
 
   check_format:
     name: Check Rust code with rustfmt and clippy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
-      - name: Run Format check
-        run: cargo fmt -- --check
-      - name: Run Clippy
-        run: cargo clippy -- -Dwarnings
+      - name: run rust fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+      - name: run clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all -- -Dwarnings
+
