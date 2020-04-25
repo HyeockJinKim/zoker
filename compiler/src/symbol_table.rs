@@ -201,11 +201,7 @@ impl SymbolTableBuilder {
 
     fn enter_expression(&mut self, expression: &ast::Expression) -> SymbolTableResult {
         match &expression.node {
-            ast::ExpressionType::AssignExpression {
-                left,
-                operator: _,
-                right,
-            } => {
+            ast::ExpressionType::AssignExpression { left, right, .. } => {
                 self.enter_expression(left)?;
                 self.enter_expression(right)?;
             }
@@ -218,11 +214,7 @@ impl SymbolTableBuilder {
                 self.enter_expression(expr1)?;
                 self.enter_expression(expr2)?;
             }
-            ExpressionType::BinaryExpression {
-                left,
-                operator: _,
-                right,
-            } => {
+            ExpressionType::BinaryExpression { left, right, .. } => {
                 self.enter_expression(left)?;
                 self.enter_expression(right)?;
             }
@@ -274,10 +266,7 @@ impl SymbolTableBuilder {
                     self.exit_scope();
                 }
             }
-            ExpressionType::UnaryExpression {
-                operator: _,
-                expression,
-            } => {
+            ExpressionType::UnaryExpression { expression, .. } => {
                 self.enter_expression(expression)?;
             }
             ExpressionType::Parameters { parameters: params } => {
