@@ -1,7 +1,6 @@
 use indexmap::map::IndexMap;
 use std::ops::Add;
 use zoker_parser::ast;
-use zoker_parser::ast::{ExpressionType, StatementType, Type};
 use zoker_parser::location::Location;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -33,7 +32,7 @@ pub enum SymbolTableType {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum SymbolScope {
+pub enum SymbolLocation {
     Unknown,
     Storage,
     Memory,
@@ -51,7 +50,7 @@ type SymbolTableResult = Result<(), SymbolTableError>;
 pub struct Symbol {
     pub name: String,
     pub symbol_type: SymbolType,
-    pub scope: SymbolScope,
+    pub data_location: SymbolLocation,
     pub role: SymbolUsage,
 }
 
@@ -154,14 +153,19 @@ impl SymbolTableBuilder {
     fn enter_statement(&mut self, statement: &ast::Statement) -> SymbolTableResult {
         match &statement.node {
             ast::StatementType::Expression { expression: expr } => self.enter_expression(expr)?,
-            StatementType::FunctionStatement {
+            ast::StatementType::FunctionStatement {
                 function_name: func,
                 parameters: params,
                 statement: stmt,
             } => {
                 let name = name_from_expression(func).unwrap();
                 let tables = self.tables.last_mut().unwrap();
-                let symbol = Symbol::new(name.clone(), SymbolUsage::Declared, SymbolType::Function);
+                let symbol = Symbol::new(
+                    name.clone(),
+                    SymbolUsage::Declared,
+                    SymbolType::Function,
+                    SymbolLocation::Storage,
+                );
                 tables.symbols.insert(name.clone(), symbol);
 
                 self.enter_scope(name, SymbolTableType::Function);
@@ -169,30 +173,36 @@ impl SymbolTableBuilder {
                 self.enter_block(stmt)?;
                 self.exit_scope();
             }
-            StatementType::ContractStatement {
+            ast::StatementType::ContractStatement {
                 contract_name: name,
                 members: stmts,
             } => {
                 let name = name_from_expression(name).unwrap();
                 let tables = self.tables.last_mut().unwrap();
-                let symbol = Symbol::new(name.clone(), SymbolUsage::Declared, SymbolType::Contract);
+                let symbol = Symbol::new(
+                    name.clone(),
+                    SymbolUsage::Declared,
+                    SymbolType::Contract,
+                    SymbolLocation::Storage,
+                );
                 tables.symbols.insert(name.clone(), symbol);
 
                 self.enter_scope(name, SymbolTableType::Contract);
                 self.enter_statement(stmts)?;
                 self.exit_scope();
             }
-            StatementType::InitializerStatement {
+            ast::StatementType::InitializerStatement {
                 variable_type,
+                data_location,
                 variable: var,
                 default,
             } => {
-                self.register_identifier(var, variable_type);
+                self.register_identifier(var, variable_type, data_location);
                 if let Some(expr) = default {
                     self.enter_expression(expr)?;
                 }
             }
-            StatementType::CompoundStatement {
+            ast::StatementType::CompoundStatement {
                 statements: stmts,
                 return_value: returns,
             } => {
@@ -208,7 +218,7 @@ impl SymbolTableBuilder {
                 }
                 self.exit_scope();
             }
-            StatementType::MemberStatement {
+            ast::StatementType::MemberStatement {
                 statements: members,
             } => {
                 for member in members {
@@ -225,7 +235,7 @@ impl SymbolTableBuilder {
                 self.enter_expression(left)?;
                 self.enter_expression(right)?;
             }
-            ExpressionType::TernaryExpression {
+            ast::ExpressionType::TernaryExpression {
                 condition,
                 expr1,
                 expr2,
@@ -234,18 +244,18 @@ impl SymbolTableBuilder {
                 self.enter_expression(expr1)?;
                 self.enter_expression(expr2)?;
             }
-            ExpressionType::BinaryExpression { left, right, .. } => {
+            ast::ExpressionType::BinaryExpression { left, right, .. } => {
                 self.enter_expression(left)?;
                 self.enter_expression(right)?;
             }
-            ExpressionType::FunctionCallExpression {
+            ast::ExpressionType::FunctionCallExpression {
                 function_name,
                 arguments,
             } => {
                 self.enter_expression(function_name)?;
                 self.enter_expression(arguments)?;
             }
-            ExpressionType::IfExpression {
+            ast::ExpressionType::IfExpression {
                 condition,
                 if_statement,
                 else_statement,
@@ -265,7 +275,7 @@ impl SymbolTableBuilder {
                     self.exit_scope();
                 }
             }
-            ExpressionType::ForEachExpression {
+            ast::ExpressionType::ForEachExpression {
                 iterator,
                 vector,
                 statement,
@@ -286,21 +296,21 @@ impl SymbolTableBuilder {
                     self.exit_scope();
                 }
             }
-            ExpressionType::UnaryExpression { expression, .. } => {
+            ast::ExpressionType::UnaryExpression { expression, .. } => {
                 self.enter_expression(expression)?;
             }
-            ExpressionType::Parameters { parameters: params } => {
+            ast::ExpressionType::Parameters { parameters: params } => {
                 for param in params {
                     self.enter_statement(param)?;
                 }
             }
-            ExpressionType::Arguments { arguments: args } => {
+            ast::ExpressionType::Arguments { arguments: args } => {
                 for arg in args {
                     self.enter_expression(arg)?;
                 }
             }
-            ExpressionType::Number { .. } => {}
-            ExpressionType::Identifier { .. } => {
+            ast::ExpressionType::Number { .. } => {}
+            ast::ExpressionType::Identifier { .. } => {
                 self.check_identifier(expression);
             }
         }
@@ -311,29 +321,66 @@ impl SymbolTableBuilder {
         let name = name_from_expression(identifier).unwrap();
         let tables = self.tables.last_mut().unwrap();
         if tables.symbols.get_mut(&name).is_none() {
-            let symbol = Symbol::new(name.clone(), SymbolUsage::Used, SymbolType::Unknown);
+            let symbol = Symbol::new(
+                name.clone(),
+                SymbolUsage::Used,
+                SymbolType::Unknown,
+                SymbolLocation::Unknown,
+            );
             tables.symbols.insert(name, symbol);
         } else {
             // TODO: Check Undeclared Variable.
         }
     }
 
-    fn register_identifier(&mut self, expr: &ast::Expression, typ: &ast::Type) {
+    fn register_identifier(
+        &mut self,
+        expr: &ast::Expression,
+        typ: &ast::Type,
+        loc: &Option<ast::Specifier>,
+    ) {
         let name = name_from_expression(expr).unwrap();
         // TODO: Check for symbol already in table.
         let symbol_type = match typ {
             ast::Type::String => SymbolType::String,
-            Type::Uint256 => SymbolType::Uint256,
-            Type::Int256 => SymbolType::Int256,
-            Type::Bytes32 => SymbolType::Bytes32,
-            Type::Bool => SymbolType::Bool,
-            Type::Bytes => SymbolType::Bytes,
-            Type::Address => SymbolType::Address,
+            ast::Type::Uint256 => SymbolType::Uint256,
+            ast::Type::Int256 => SymbolType::Int256,
+            ast::Type::Bytes32 => SymbolType::Bytes32,
+            ast::Type::Bool => SymbolType::Bool,
+            ast::Type::Bytes => SymbolType::Bytes,
+            ast::Type::Address => SymbolType::Address,
         };
-
-        let symbol = Symbol::new(name.clone(), SymbolUsage::Declared, symbol_type);
+        let data_location = if let Some(location) = loc {
+            match location {
+                ast::Specifier::Storage => SymbolLocation::Storage,
+                ast::Specifier::Memory => SymbolLocation::Memory,
+            }
+        } else {
+            self.default_location(&symbol_type)
+        };
+        let symbol = Symbol::new(
+            name.clone(),
+            SymbolUsage::Declared,
+            symbol_type,
+            data_location,
+        );
         let tables = self.tables.last_mut().unwrap();
         tables.symbols.insert(name, symbol);
+    }
+
+    fn default_location(&self, typ: &SymbolType) -> SymbolLocation {
+        match typ {
+            SymbolType::Unknown => SymbolLocation::Unknown,
+            SymbolType::Contract => SymbolLocation::Storage,
+            SymbolType::Function => SymbolLocation::Storage,
+            SymbolType::Uint256 => SymbolLocation::Memory,
+            SymbolType::Int256 => SymbolLocation::Memory,
+            SymbolType::String => SymbolLocation::Storage,
+            SymbolType::Address => SymbolLocation::Memory,
+            SymbolType::Bytes32 => SymbolLocation::Storage,
+            SymbolType::Bytes => SymbolLocation::Storage,
+            SymbolType::Bool => SymbolLocation::Memory,
+        }
     }
 
     fn build(mut self) -> Result<SymbolTable, SymbolTableError> {
@@ -342,11 +389,16 @@ impl SymbolTableBuilder {
 }
 
 impl Symbol {
-    fn new(name: String, role: SymbolUsage, symbol_type: SymbolType) -> Self {
+    fn new(
+        name: String,
+        role: SymbolUsage,
+        symbol_type: SymbolType,
+        data_location: SymbolLocation,
+    ) -> Self {
         Symbol {
             name,
             symbol_type,
-            scope: SymbolScope::Unknown,
+            data_location,
             role,
         }
     }

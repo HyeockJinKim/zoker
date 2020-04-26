@@ -31,6 +31,7 @@ pub enum StatementType {
     },
     InitializerStatement {
         variable_type: Type,
+        data_location: Option<Specifier>,
         variable: Box<Expression>,
         default: Option<Box<Expression>>,
     },
@@ -157,6 +158,12 @@ pub enum Operator {
     // Shift Operator
     LShift,
     RShift,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Specifier {
+    Memory,
+    Storage,
 }
 
 #[derive(Debug, PartialEq)]

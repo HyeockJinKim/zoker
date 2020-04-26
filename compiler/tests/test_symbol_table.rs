@@ -1,9 +1,9 @@
 use zoker_compiler::symbol_table;
-use zoker_compiler::symbol_table::{Symbol, SymbolScope, SymbolType, SymbolUsage};
+use zoker_compiler::symbol_table::{Symbol, SymbolLocation, SymbolType, SymbolUsage};
 use zoker_parser::parser;
 
 #[test]
-fn test_print_ternary_expression() {
+fn test_symbol_table_uint_expression() {
     let num = parser::parse_program("uint a = 3; int b; c = a + b;").unwrap();
     let table = symbol_table::make_symbol_tables(&num);
     assert!(table.is_ok());
@@ -13,19 +13,19 @@ fn test_print_ternary_expression() {
     let a = Symbol {
         name: "a".to_string(),
         symbol_type: SymbolType::Uint256,
-        scope: SymbolScope::Unknown,
+        data_location: SymbolLocation::Memory,
         role: SymbolUsage::Declared,
     };
     let b = Symbol {
         name: "b".to_string(),
         symbol_type: SymbolType::Int256,
-        scope: SymbolScope::Unknown,
+        data_location: SymbolLocation::Memory,
         role: SymbolUsage::Declared,
     };
     let c = Symbol {
         name: "c".to_string(),
         symbol_type: SymbolType::Unknown,
-        scope: SymbolScope::Unknown,
+        data_location: SymbolLocation::Unknown,
         role: SymbolUsage::Used,
     };
     assert_eq!(table.symbols.get("a").unwrap(), &a);

@@ -105,14 +105,20 @@ pub Statement: ast::Statement = {
 };
 
 InitializerStatement: ast::Statement = {
-    <location:@L> <var_type:Type> <var_name: Identifier> <default:("=" Expression)?> => ast::Statement {
+    <location:@L> <var_type:Type> <data_location: LocationSpecifier?> <var_name: Identifier> <default:("=" Expression)?> => ast::Statement {
         location,
         node: ast::StatementType::InitializerStatement {
             variable_type: var_type,
+            data_location,
             variable: Box::new(var_name),
             default: default.map_or(None, |x| Some(Box::new(x.1))),
         }
     },
+};
+
+LocationSpecifier: ast::Specifier = {
+    "memory" => ast::Specifier::Memory,
+    "storage" => ast::Specifier::Storage,
 };
 
 CompoundStatement: ast::Statement = {
@@ -579,6 +585,8 @@ extern {
         // Keyword
         "function" => lexer::Tok::Function,
         "contract" => lexer::Tok::Contract,
+        "memory" => lexer::Tok::Memory,
+        "storage" => lexer::Tok::Storage,
         "if" => lexer::Tok::If,
         "else" => lexer::Tok::Else,
         "for" => lexer::Tok::For,
