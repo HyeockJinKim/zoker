@@ -7,7 +7,7 @@ use zoker_parser::location::Location;
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SymbolType {
     Unknown,
-    // Contract,
+    Contract,
     Function,
     Uint256,
     Int256,
@@ -27,7 +27,7 @@ pub enum SymbolUsage {
 #[derive(Clone, Copy, PartialEq)]
 pub enum SymbolTableType {
     Global,
-    // Contract,
+    Contract,
     Function,
     Local,
 }
@@ -169,6 +169,19 @@ impl SymbolTableBuilder {
                 self.enter_block(stmt)?;
                 self.exit_scope();
             }
+            StatementType::ContractStatement {
+                contract_name: name,
+                members: stmts,
+            } => {
+                let name = name_from_expression(name).unwrap();
+                let tables = self.tables.last_mut().unwrap();
+                let symbol = Symbol::new(name.clone(), SymbolUsage::Declared, SymbolType::Contract);
+                tables.symbols.insert(name.clone(), symbol);
+
+                self.enter_scope(name, SymbolTableType::Contract);
+                self.enter_statement(stmts)?;
+                self.exit_scope();
+            }
             StatementType::InitializerStatement {
                 variable_type,
                 variable: var,
@@ -194,6 +207,13 @@ impl SymbolTableBuilder {
                     self.enter_expression(expr)?;
                 }
                 self.exit_scope();
+            }
+            StatementType::MemberStatement {
+                statements: members,
+            } => {
+                for member in members {
+                    self.enter_statement(member)?;
+                }
             }
         }
         Ok(())

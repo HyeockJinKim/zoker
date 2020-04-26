@@ -61,6 +61,7 @@ pub enum Tok {
 
     // Keyword
     Function,
+    Contract,
     If,
     Else,
     For,

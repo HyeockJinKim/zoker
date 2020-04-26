@@ -25,6 +25,10 @@ pub enum StatementType {
         parameters: Box<Expression>,
         statement: Box<Statement>,
     },
+    ContractStatement {
+        contract_name: Box<Expression>,
+        members: Box<Statement>,
+    },
     InitializerStatement {
         variable_type: Type,
         variable: Box<Expression>,
@@ -34,6 +38,9 @@ pub enum StatementType {
     CompoundStatement {
         statements: Vec<Statement>,
         return_value: Option<Box<Expression>>,
+    },
+    MemberStatement {
+        statements: Vec<Statement>,
     },
     Expression {
         expression: Box<Expression>,

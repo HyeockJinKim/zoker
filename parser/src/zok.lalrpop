@@ -28,7 +28,42 @@ pub GlobalStatement: ast::Statement = {
             expression: Box::new(expr),
         },
     },
+    ContractStatement,
     InitializerStatement,
+    FunctionStatement,
+};
+
+ContractStatement: ast::Statement = {
+    <location:@L> "contract" <id:Identifier> "{" <location2:@L> <member:ContractMembers> "}" => ast::Statement {
+        location,
+        node: ast::StatementType::ContractStatement {
+            contract_name: Box::new(id),
+            members: Box::new(ast::Statement {
+                location: location2,
+                node: ast::StatementType::MemberStatement {
+                    statements: member,
+                }
+            })
+        }
+    },
+};
+
+ContractMembers: Vec<ast::Statement> = {
+    <mut stmts:ContractMembers> <stmt:ContractMember> => {
+        stmts.push(stmt);
+        stmts
+    },
+    <stmt:ContractMember> => vec![stmt],
+};
+
+ContractMember: ast::Statement = {
+    <location:@L> <expr:Expression> ";" => ast::Statement {
+        location,
+        node: ast::StatementType::Expression {
+            expression: Box::new(expr),
+        },
+    },
+    <stmt:InitializerStatement> ";" => stmt,
     FunctionStatement,
 };
 
@@ -543,6 +578,7 @@ extern {
 
         // Keyword
         "function" => lexer::Tok::Function,
+        "contract" => lexer::Tok::Contract,
         "if" => lexer::Tok::If,
         "else" => lexer::Tok::Else,
         "for" => lexer::Tok::For,

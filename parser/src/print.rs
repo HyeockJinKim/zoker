@@ -1,4 +1,5 @@
 use crate::ast;
+use std::ops::Add;
 
 pub struct PrintAST {
     repr: String,
@@ -42,6 +43,14 @@ pub fn program_to_str(node: &ast::Program) -> PrintAST {
     }
 }
 
+fn name_from_identifier(identifier: &ast::Expression) -> Option<String> {
+    if let ast::ExpressionType::Identifier { value } = &identifier.node {
+        Some(value.clone())
+    } else {
+        None
+    }
+}
+
 pub fn stmt_to_str(node: &ast::StatementType) -> PrintAST {
     match node {
         ast::StatementType::FunctionStatement {
@@ -49,11 +58,36 @@ pub fn stmt_to_str(node: &ast::StatementType) -> PrintAST {
             parameters: params,
             statement: stmt,
         } => {
-            let repr = String::from("[ Function Statement ] ");
-            let function_name = expr_to_str(&id.node);
+            let name = name_from_identifier(&id).unwrap();
+            let repr = String::from("[ Function Statement: ")
+                .add(name.as_str())
+                .add(" ] ");
             let parameters = expr_to_str(&params.node);
             let statement = stmt_to_str(&stmt.node);
-            let children = vec![function_name, parameters, statement];
+            let children = vec![parameters, statement];
+            let children_size = children.iter().fold(0, |v, child| v + child.size);
+            let size = usize::max(repr.len(), children_size);
+
+            let mut ast = PrintAST {
+                repr,
+                size,
+                left_margin: 0,
+                right_margin: 0,
+                children,
+            };
+            ast.add_children_margin();
+            ast
+        }
+        ast::StatementType::ContractStatement {
+            contract_name: name,
+            members: stmts,
+        } => {
+            let name = name_from_identifier(&name).unwrap();
+            let repr = String::from("[ Contract Statement: ")
+                .add(name.as_str())
+                .add(" ] ");
+            let member = stmt_to_str(&stmts.node);
+            let children = vec![member];
             let children_size = children.iter().fold(0, |v, child| v + child.size);
             let size = usize::max(repr.len(), children_size);
 
@@ -110,6 +144,25 @@ pub fn stmt_to_str(node: &ast::StatementType) -> PrintAST {
             if let Some(return_value) = returns {
                 children.push(expr_to_str(&return_value.node))
             }
+            let children_size = children.iter().fold(0, |v, child| v + child.size);
+            let size = usize::max(repr.len(), children_size);
+
+            let mut ast = PrintAST {
+                repr,
+                size,
+                left_margin: 0,
+                right_margin: 0,
+                children,
+            };
+            ast.add_children_margin();
+            ast
+        }
+        ast::StatementType::MemberStatement { statements: stmts } => {
+            let children = stmts
+                .iter()
+                .map(|stmt| stmt_to_str(&stmt.node))
+                .collect::<Vec<_>>();
+            let repr = String::from("[ Member Statement ] ");
             let children_size = children.iter().fold(0, |v, child| v + child.size);
             let size = usize::max(repr.len(), children_size);
 

@@ -33,6 +33,7 @@ fn get_keywords() -> HashMap<String, Tok> {
     keywords.insert(String::from("String"), Tok::String);
     keywords.insert(String::from("address"), Tok::Address);
     keywords.insert(String::from("function"), Tok::Function);
+    keywords.insert(String::from("contract"), Tok::Contract);
     keywords.insert(String::from("if"), Tok::If);
     keywords.insert(String::from("else"), Tok::Else);
     keywords.insert(String::from("for"), Tok::For);
