@@ -38,10 +38,10 @@ pub enum SymbolLocation {
     Memory,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct SymbolTableError {
-    error: String,
-    location: Location,
+    pub error: String,
+    pub location: Location,
 }
 
 type SymbolTableResult = Result<(), SymbolTableError>;
@@ -70,6 +70,22 @@ struct SymbolTableBuilder {
     pub tables: Vec<SymbolTable>,
 }
 
+#[derive(Default)]
+struct SymbolAnalyzer {
+    tables: Vec<AnalysisTable>,
+}
+
+struct AnalysisTable {
+    pub map: IndexMap<String, Symbol>,
+    pub typ: SymbolTableType,
+}
+
+impl AnalysisTable {
+    fn new(map: IndexMap<String, Symbol>, typ: SymbolTableType) -> Self {
+        AnalysisTable { map, typ }
+    }
+}
+
 pub fn make_symbol_tables(program: &ast::Program) -> Result<SymbolTable, SymbolTableError> {
     SymbolTableBuilder::new().prepare_table(program)?.build()
 }
@@ -79,6 +95,50 @@ fn name_from_expression(expr: &ast::Expression) -> Option<String> {
         Some(value.clone())
     } else {
         None
+    }
+}
+
+impl SymbolAnalyzer {
+    fn analyze_symbol_table(&mut self, table: &SymbolTable) -> SymbolTableResult {
+        let sub_tables = &table.sub_tables;
+
+        self.tables
+            .push(AnalysisTable::new(table.symbols.clone(), table.table_type));
+
+        for sub_table in sub_tables {
+            self.analyze_symbol_table(sub_table)?;
+        }
+        let mut analysis_table = self.tables.pop().unwrap();
+
+        for value in analysis_table.map.values_mut() {
+            self.analyze_symbol(value)?;
+        }
+        Ok(())
+    }
+
+    fn analyze_symbol(&mut self, symbol: &Symbol) -> SymbolTableResult {
+        match symbol.role {
+            SymbolUsage::Declared => {
+                // No need to do anything.
+            }
+            SymbolUsage::Used => {
+                let is_declared = self.tables.iter().any(|table| {
+                    if let Some(sym) = table.map.get(&symbol.name) {
+                        sym.role != SymbolUsage::Used
+                    } else {
+                        false
+                    }
+                });
+
+                if !is_declared {
+                    return Err(SymbolTableError {
+                        error: format!("Variable {} is not declared, but used.", symbol.name),
+                        location: Default::default(),
+                    });
+                }
+            }
+        }
+        Ok(())
     }
 }
 
@@ -356,7 +416,7 @@ impl SymbolTableBuilder {
                 ast::Specifier::Memory => SymbolLocation::Memory,
             }
         } else {
-            self.default_location(&symbol_type)
+            self.default_location(symbol_type)
         };
         let symbol = Symbol::new(
             name.clone(),
@@ -368,7 +428,7 @@ impl SymbolTableBuilder {
         tables.symbols.insert(name, symbol);
     }
 
-    fn default_location(&self, typ: &SymbolType) -> SymbolLocation {
+    fn default_location(&self, typ: SymbolType) -> SymbolLocation {
         match typ {
             SymbolType::Unknown => SymbolLocation::Unknown,
             SymbolType::Contract => SymbolLocation::Storage,
@@ -384,7 +444,10 @@ impl SymbolTableBuilder {
     }
 
     fn build(mut self) -> Result<SymbolTable, SymbolTableError> {
-        Ok(self.tables.pop().unwrap())
+        let table = self.tables.pop().unwrap();
+        let mut analyzer = SymbolAnalyzer::default();
+        analyzer.analyze_symbol_table(&table)?;
+        Ok(table)
     }
 }
 

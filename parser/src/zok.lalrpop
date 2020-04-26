@@ -14,34 +14,34 @@ pub Program: ast::Program = {
 };
 
 GlobalStatements: Vec<ast::Statement> = {
-    <mut stmts:GlobalStatements> <stmt:GlobalStatement> ";" => {
+    <mut stmts:GlobalStatements> <stmt:GlobalStatement> => {
         stmts.push(stmt);
         stmts
     },
-    <stmt:GlobalStatement> ";" => vec![stmt]
+    <stmt:GlobalStatement> => vec![stmt]
 };
 
 pub GlobalStatement: ast::Statement = {
-    <location:@L> <expr:Expression> => ast::Statement {
+    <location:@L> <expr:Expression> ";" => ast::Statement {
         location,
         node: ast::StatementType::Expression {
             expression: Box::new(expr),
         },
     },
     ContractStatement,
-    InitializerStatement,
+    <stmt:InitializerStatement> ";" => stmt,
     FunctionStatement,
 };
 
 ContractStatement: ast::Statement = {
-    <location:@L> "contract" <id:Identifier> "{" <location2:@L> <member:ContractMembers> "}" => ast::Statement {
+    <location:@L> "contract" <id:Identifier> "{" <location2:@L> <member:ContractMembers?> "}" => ast::Statement {
         location,
         node: ast::StatementType::ContractStatement {
             contract_name: Box::new(id),
             members: Box::new(ast::Statement {
                 location: location2,
                 node: ast::StatementType::MemberStatement {
-                    statements: member,
+                    statements: member.unwrap_or(vec![]),
                 }
             })
         }
