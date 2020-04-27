@@ -189,19 +189,23 @@ impl SymbolTableBuilder {
 
     fn enter_global_statements(&mut self, statements: &[ast::Statement]) -> SymbolTableResult {
         for stmt in statements {
-            self.enter_statement(stmt)?;
+            self.enter_statement(stmt, &SymbolLocation::Memory)?;
         }
         Ok(())
     }
 
-    fn enter_block(&mut self, compound: &ast::Statement) -> SymbolTableResult {
+    fn enter_block(
+        &mut self,
+        compound: &ast::Statement,
+        location: &SymbolLocation,
+    ) -> SymbolTableResult {
         if let ast::StatementType::CompoundStatement {
             statements,
             return_value,
         } = &compound.node
         {
             for stmt in statements {
-                self.enter_statement(stmt)?;
+                self.enter_statement(stmt, location)?;
             }
             if let Some(returns) = return_value {
                 self.enter_expression(returns)?;
@@ -210,7 +214,11 @@ impl SymbolTableBuilder {
         Ok(())
     }
 
-    fn enter_statement(&mut self, statement: &ast::Statement) -> SymbolTableResult {
+    fn enter_statement(
+        &mut self,
+        statement: &ast::Statement,
+        location: &SymbolLocation,
+    ) -> SymbolTableResult {
         match &statement.node {
             ast::StatementType::Expression { expression: expr } => self.enter_expression(expr)?,
             ast::StatementType::FunctionStatement {
@@ -230,7 +238,7 @@ impl SymbolTableBuilder {
 
                 self.enter_scope(name, SymbolTableType::Function);
                 self.enter_expression(params)?;
-                self.enter_block(stmt)?;
+                self.enter_block(stmt, &SymbolLocation::Unknown)?;
                 self.exit_scope();
             }
             ast::StatementType::ContractStatement {
@@ -248,16 +256,24 @@ impl SymbolTableBuilder {
                 tables.symbols.insert(name.clone(), symbol);
 
                 self.enter_scope(name, SymbolTableType::Contract);
-                self.enter_statement(stmts)?;
+                self.enter_statement(stmts, location)?;
                 self.exit_scope();
             }
             ast::StatementType::InitializerStatement {
                 variable_type,
-                data_location,
+                data_location: loc,
                 variable: var,
                 default,
             } => {
-                self.register_identifier(var, variable_type, data_location);
+                if let Some(data_location) = loc {
+                    let data_location = match data_location {
+                        ast::Specifier::Storage => SymbolLocation::Storage,
+                        ast::Specifier::Memory => SymbolLocation::Memory,
+                    };
+                    self.register_identifier(var, variable_type, &data_location);
+                } else {
+                    self.register_identifier(var, variable_type, location);
+                }
                 if let Some(expr) = default {
                     self.enter_expression(expr)?;
                 }
@@ -271,7 +287,7 @@ impl SymbolTableBuilder {
                 let name = String::from("#Compound_").add(&*(number).to_string());
                 self.enter_scope(name, SymbolTableType::Local);
                 for stmt in stmts {
-                    self.enter_statement(stmt)?;
+                    self.enter_statement(stmt, location)?;
                 }
                 if let Some(expr) = returns {
                     self.enter_expression(expr)?;
@@ -282,7 +298,7 @@ impl SymbolTableBuilder {
                 statements: members,
             } => {
                 for member in members {
-                    self.enter_statement(member)?;
+                    self.enter_statement(member, &SymbolLocation::Storage)?;
                 }
             }
         }
@@ -326,12 +342,12 @@ impl SymbolTableBuilder {
                 let if_name = String::from("#If_").add(&*(if_num).to_string());
                 let else_name = String::from("#Else_").add(&*(if_num).to_string());
                 self.enter_scope(if_name, SymbolTableType::Local);
-                self.enter_block(if_statement)?;
+                self.enter_block(if_statement, &SymbolLocation::Unknown)?;
                 self.exit_scope();
 
                 if let Some(expr) = else_statement {
                     self.enter_scope(else_name, SymbolTableType::Local);
-                    self.enter_block(expr)?;
+                    self.enter_block(expr, &SymbolLocation::Unknown)?;
                     self.exit_scope();
                 }
             }
@@ -348,11 +364,11 @@ impl SymbolTableBuilder {
                 let else_name = String::from("#Else_").add(&*(for_num).to_string());
                 self.enter_scope(for_name, SymbolTableType::Local);
                 self.enter_expression(iterator)?;
-                self.enter_block(statement)?;
+                self.enter_block(statement, &SymbolLocation::Unknown)?;
                 self.exit_scope();
                 if let Some(stmt) = else_statement {
                     self.enter_scope(else_name, SymbolTableType::Local);
-                    self.enter_block(stmt)?;
+                    self.enter_block(stmt, &SymbolLocation::Unknown)?;
                     self.exit_scope();
                 }
             }
@@ -361,7 +377,7 @@ impl SymbolTableBuilder {
             }
             ast::ExpressionType::Parameters { parameters: params } => {
                 for param in params {
-                    self.enter_statement(param)?;
+                    self.enter_statement(param, &SymbolLocation::Unknown)?;
                 }
             }
             ast::ExpressionType::Arguments { arguments: args } => {
@@ -389,7 +405,7 @@ impl SymbolTableBuilder {
             );
             tables.symbols.insert(name, symbol);
         } else {
-            // TODO: Check Undeclared Variable.
+            // TODO: Check Declared Variable?
         }
     }
 
@@ -397,7 +413,7 @@ impl SymbolTableBuilder {
         &mut self,
         expr: &ast::Expression,
         typ: &ast::Type,
-        loc: &Option<ast::Specifier>,
+        loc: &SymbolLocation,
     ) {
         let name = name_from_expression(expr).unwrap();
         // TODO: Check for symbol already in table.
@@ -410,11 +426,8 @@ impl SymbolTableBuilder {
             ast::Type::Bytes => SymbolType::Bytes,
             ast::Type::Address => SymbolType::Address,
         };
-        let data_location = if let Some(location) = loc {
-            match location {
-                ast::Specifier::Storage => SymbolLocation::Storage,
-                ast::Specifier::Memory => SymbolLocation::Memory,
-            }
+        let data_location = if loc != &SymbolLocation::Unknown {
+            loc.clone()
         } else {
             self.default_location(symbol_type)
         };
