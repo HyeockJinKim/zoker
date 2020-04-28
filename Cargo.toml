@@ -7,11 +7,12 @@ repository = "https://github.com/HyeockJinKim/zoker"
 license = "MIT"
 
 [workspace]
-members = [".", "parser", "compiler"]
+members = [".", "parser", "compiler", "bytecode"]
 
 [dependencies]
 zoker-compiler = {path = "compiler", version = "0.1.0"}
 zoker-parser = {path = "parser", version = "0.1.0"}
+zoker-bytecode = {path = "bytecode", version = "0.1.0"}
 
 [[bin]]
 name = "rustpython"
