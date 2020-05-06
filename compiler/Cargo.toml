@@ -9,5 +9,6 @@ license = "MIT"
 
 [dependencies]
 indexmap = "1.3.2"
+zoker-bytecode = { path = "../bytecode", version = "0.1.0" }
 zoker-parser = { path = "../parser", version = "0.1.0" }
 num-bigint = "0.2"

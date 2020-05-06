@@ -1,3 +1,4 @@
+use crate::error::{CompileError, CompileErrorType};
 use indexmap::map::IndexMap;
 use std::ops::Add;
 use zoker_parser::ast;
@@ -44,6 +45,15 @@ pub struct SymbolTableError {
     pub location: Location,
 }
 
+impl From<SymbolTableError> for CompileError {
+    fn from(error: SymbolTableError) -> Self {
+        CompileError {
+            error: CompileErrorType::SyntaxError(error.error),
+            location: error.location,
+        }
+    }
+}
+
 type SymbolTableResult = Result<(), SymbolTableError>;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -52,6 +62,22 @@ pub struct Symbol {
     pub symbol_type: SymbolType,
     pub data_location: SymbolLocation,
     pub role: SymbolUsage,
+}
+
+impl Symbol {
+    fn new(
+        name: String,
+        role: SymbolUsage,
+        symbol_type: SymbolType,
+        data_location: SymbolLocation,
+    ) -> Self {
+        Symbol {
+            name,
+            symbol_type,
+            data_location,
+            role,
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -88,14 +114,6 @@ impl AnalysisTable {
 
 pub fn make_symbol_tables(program: &ast::Program) -> Result<SymbolTable, SymbolTableError> {
     SymbolTableBuilder::new().prepare_table(program)?.build()
-}
-
-fn name_from_expression(expr: &ast::Expression) -> Option<String> {
-    if let ast::ExpressionType::Identifier { value } = &expr.node {
-        Some(value.clone())
-    } else {
-        None
-    }
 }
 
 impl SymbolAnalyzer {
@@ -226,7 +244,7 @@ impl SymbolTableBuilder {
                 parameters: params,
                 statement: stmt,
             } => {
-                let name = name_from_expression(func).unwrap();
+                let name = func.node.identifier_name().unwrap();
                 let tables = self.tables.last_mut().unwrap();
                 let symbol = Symbol::new(
                     name.clone(),
@@ -245,7 +263,7 @@ impl SymbolTableBuilder {
                 contract_name: name,
                 members: stmts,
             } => {
-                let name = name_from_expression(name).unwrap();
+                let name = name.node.identifier_name().unwrap();
                 let tables = self.tables.last_mut().unwrap();
                 let symbol = Symbol::new(
                     name.clone(),
@@ -394,9 +412,9 @@ impl SymbolTableBuilder {
     }
 
     fn check_identifier(&mut self, identifier: &ast::Expression) {
-        let name = name_from_expression(identifier).unwrap();
+        let name = identifier.node.identifier_name().unwrap();
         let tables = self.tables.last_mut().unwrap();
-        if tables.symbols.get_mut(&name).is_none() {
+        if tables.symbols.get(&name).is_none() {
             let symbol = Symbol::new(
                 name.clone(),
                 SymbolUsage::Used,
@@ -415,7 +433,7 @@ impl SymbolTableBuilder {
         typ: &ast::Type,
         loc: &SymbolLocation,
     ) {
-        let name = name_from_expression(expr).unwrap();
+        let name = expr.node.identifier_name().unwrap();
         // TODO: Check for symbol already in table.
         let symbol_type = match typ {
             ast::Type::String => SymbolType::String,
@@ -461,21 +479,5 @@ impl SymbolTableBuilder {
         let mut analyzer = SymbolAnalyzer::default();
         analyzer.analyze_symbol_table(&table)?;
         Ok(table)
-    }
-}
-
-impl Symbol {
-    fn new(
-        name: String,
-        role: SymbolUsage,
-        symbol_type: SymbolType,
-        data_location: SymbolLocation,
-    ) -> Self {
-        Symbol {
-            name,
-            symbol_type,
-            data_location,
-            role,
-        }
     }
 }

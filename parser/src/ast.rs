@@ -100,6 +100,16 @@ pub enum ExpressionType {
     },
 }
 
+impl ExpressionType {
+    pub fn identifier_name(&self) -> Option<String> {
+        if let ExpressionType::Identifier { value } = self {
+            Some(value.clone())
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub enum Operator {
     // Arithmetic Operator
