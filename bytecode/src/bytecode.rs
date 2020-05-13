@@ -61,7 +61,7 @@ impl Register {
             name,
             typ,
             value,
-            number
+            number,
         }
     }
 }
