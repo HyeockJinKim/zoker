@@ -1,7 +1,6 @@
+use zoker_compiler::error::{CompileError, CompileErrorType};
+use zoker_compiler::symbol::{Symbol, SymbolLocation, SymbolType, SymbolUsage};
 use zoker_compiler::symbol_table;
-use zoker_compiler::symbol_table::{
-    Symbol, SymbolLocation, SymbolTableError, SymbolType, SymbolUsage,
-};
 use zoker_parser::parser;
 
 #[test]
@@ -49,8 +48,10 @@ fn test_undeclared_used_expression2() {
     assert!(table.is_err());
     assert_eq!(
         table.err().unwrap(),
-        SymbolTableError {
-            error: String::from("Variable b is not declared, but used."),
+        CompileError {
+            error: CompileErrorType::SyntaxError(String::from(
+                "Variable b is not declared, but used."
+            )),
             location: Default::default(),
         }
     );
