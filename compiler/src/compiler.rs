@@ -140,6 +140,7 @@ impl Compiler {
                 function_name: func,
                 parameters: params,
                 statement: stmt,
+                returns: ret,
             } => {
                 let func_name = func.node.identifier_name().unwrap();
                 let prev_scope = self.enter_scope(NameScope::Local);
@@ -148,6 +149,9 @@ impl Compiler {
                 // TODO: For Function call, Parameter should be processed.
                 self.compile_expression(params)?;
                 self.compile_statement(stmt)?;
+                if let Some(returns) = ret {
+                    self.compile_expression(returns)?;
+                }
 
                 self.pop_code_block();
                 self.exit_scope(prev_scope);
@@ -171,18 +175,20 @@ impl Compiler {
                 variable,
                 default,
             } => {
-                let name = variable.node.identifier_name().unwrap();
-                // TODO: Check Data location here, not in symbol table.
-                let default_value = if let Some(var) = default {
-                    let reg = self.compile_expression(var)?.unwrap();
-                    reg.value
-                } else {
-                    self.default_constant(variable_type)
-                };
-                self.register_name(&name, default_value);
-                if let Some(_value) = default {
-                    self.registers.last_mut().unwrap().get_mut(&name).unwrap();
-                    // TODO: Set Default Value
+                if let Some(variable) = variable {
+                    let name = variable.node.identifier_name().unwrap();
+                    // TODO: Check Data location here, not in symbol table.
+                    let default_value = if let Some(var) = default {
+                        let reg = self.compile_expression(var)?.unwrap();
+                        reg.value
+                    } else {
+                        self.default_constant(variable_type)
+                    };
+                    self.register_name(&name, default_value);
+                    if let Some(_value) = default {
+                        self.registers.last_mut().unwrap().get_mut(&name).unwrap();
+                        // TODO: Set Default Value
+                    }
                 }
                 Ok(None)
             }

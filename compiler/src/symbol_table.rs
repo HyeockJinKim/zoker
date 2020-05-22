@@ -185,6 +185,7 @@ impl SymbolTableBuilder {
                 function_name: func,
                 parameters: params,
                 statement: stmt,
+                returns: ret,
             } => {
                 let name = func.node.identifier_name().unwrap();
                 let symbol = Symbol::new(
@@ -203,6 +204,9 @@ impl SymbolTableBuilder {
                 self.enter_scope(name, SymbolTableType::Function);
                 self.enter_expression(params)?;
                 self.enter_block(stmt, &SymbolLocation::Unknown)?;
+                if let Some(returns) = ret {
+                    self.enter_expression(returns)?;
+                }
                 self.exit_scope();
                 Ok(SymbolType::None)
             }
@@ -232,25 +236,27 @@ impl SymbolTableBuilder {
                 variable: var,
                 default,
             } => {
-                let typ = if let Some(data_location) = loc {
-                    let data_location = match data_location {
-                        ast::Specifier::Storage => SymbolLocation::Storage,
-                        ast::Specifier::Memory => SymbolLocation::Memory,
+                let typ = get_type(variable_type);
+                if let Some(var) = var {
+                    if let Some(data_location) = loc {
+                        let data_location = match data_location {
+                            ast::Specifier::Storage => SymbolLocation::Storage,
+                            ast::Specifier::Memory => SymbolLocation::Memory,
+                        };
+                        self.register_identifier(var, variable_type, &data_location)
+                    } else {
+                        self.register_identifier(var, variable_type, location)
                     };
-                    self.register_identifier(var, variable_type, &data_location)
-                } else {
-                    self.register_identifier(var, variable_type, location)
-                };
-                if let Some(expr) = default {
-                    let default_value_type = self.enter_expression(expr)?;
-                    let err_msg = format!(
-                        "In Initializer statement, both init type and default value type must be of the same type. but {} type is not same as {}",
-                        typ, default_value_type
-                    );
-                    self.compare_type(typ, default_value_type, var.location, err_msg)
-                } else {
-                    Ok(typ)
+                    if let Some(expr) = default {
+                        let default_value_type = self.enter_expression(expr)?;
+                        let err_msg = format!(
+                            "In Initializer statement, both init type and default value type must be of the same type. but {} type is not same as {}",
+                            typ, default_value_type
+                        );
+                        self.compare_type(typ, default_value_type, var.location, err_msg)?;
+                    }
                 }
+                Ok(typ)
             }
             ast::StatementType::CompoundStatement {
                 statements: stmts,
@@ -347,17 +353,23 @@ impl SymbolTableBuilder {
                             location: arguments.location,
                         });
                     }
+                    if function.returns.is_empty() {
+                        Ok(SymbolType::None)
+                    } else if function.returns.len() == 1 {
+                        Ok(function.returns[0])
+                    } else {
+                        // TODO: Multiple Returns
+                        Ok(SymbolType::None)
+                    }
                 } else {
-                    return Err(CompileError {
+                    Err(CompileError {
                         error: CompileErrorType::SyntaxError(format!(
                             "Function {} is not defined.",
                             name
                         )),
                         location: arguments.location,
-                    });
+                    })
                 }
-                // TODO: Return Type should be added.
-                Ok(SymbolType::None)
             }
             ast::ExpressionType::IfExpression {
                 condition,
@@ -494,7 +506,7 @@ impl SymbolTableBuilder {
         expr: &ast::Expression,
         typ: &ast::Type,
         loc: &SymbolLocation,
-    ) -> SymbolType {
+    ) {
         let name = expr.node.identifier_name().unwrap();
         // TODO: Check for symbol already in table.
         let symbol_type = get_type(typ);
@@ -511,7 +523,6 @@ impl SymbolTableBuilder {
         );
         let tables = self.tables.last_mut().unwrap();
         tables.symbols.insert(name, symbol);
-        symbol_type
     }
 
     fn default_location(&self, typ: SymbolType) -> SymbolLocation {

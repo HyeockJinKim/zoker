@@ -24,6 +24,7 @@ pub enum StatementType {
         function_name: Box<Expression>,
         parameters: Box<Expression>,
         statement: Box<Statement>,
+        returns: Option<Box<Expression>>,
     },
     ContractStatement {
         contract_name: Box<Expression>,
@@ -32,7 +33,7 @@ pub enum StatementType {
     InitializerStatement {
         variable_type: Type,
         data_location: Option<Specifier>,
-        variable: Box<Expression>,
+        variable: Option<Box<Expression>>,
         default: Option<Box<Expression>>,
     },
     // Local Statement

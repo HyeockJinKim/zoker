@@ -68,12 +68,13 @@ ContractMember: ast::Statement = {
 };
 
 FunctionStatement: ast::Statement = {
-    <location:@L> "function" <id:Identifier> <params:Parameters> <stmt:CompoundStatement> => ast::Statement {
+    <location:@L> "function" <id:Identifier> <params:Parameters> <returns:("returns" Parameters)?> <stmt:CompoundStatement> => ast::Statement {
         location,
         node: ast::StatementType::FunctionStatement {
             function_name: Box::new(id),
             parameters: Box::new(params),
             statement: Box::new(stmt),
+            returns: returns.map_or(None, |x| Some(Box::new(x.1))),
         }
     },
 };
@@ -105,15 +106,29 @@ pub Statement: ast::Statement = {
 };
 
 InitializerStatement: ast::Statement = {
-    <location:@L> <var_type:Type> <data_location: LocationSpecifier?> <var_name: Identifier> <default:("=" Expression)?> => ast::Statement {
-        location,
-        node: ast::StatementType::InitializerStatement {
-            variable_type: var_type,
-            data_location,
-            variable: Box::new(var_name),
-            default: default.map_or(None, |x| Some(Box::new(x.1))),
+    <location:@L> <var_type:Type> <data_location: LocationSpecifier?> <variable: (Identifier ("=" Expression)?)?> => {
+        if let Some(var) = variable {
+            ast::Statement {
+                location,
+                node: ast::StatementType::InitializerStatement {
+                    variable_type: var_type,
+                    data_location,
+                    variable: Some(Box::new(var.0)),
+                    default: var.1.map_or(None, | x | Some(Box::new(x.1))),
+                }
+            }
+        } else {
+            ast::Statement {
+                location,
+                node: ast::StatementType::InitializerStatement {
+                    variable_type: var_type,
+                    data_location,
+                    variable: None,
+                    default: None,
+                }
+            }
         }
-    },
+    }
 };
 
 LocationSpecifier: ast::Specifier = {
@@ -172,7 +187,6 @@ ForEachExpression: ast::Expression = {
 /// - except
 /// Assign Expression ( =, &=, |=, ^=, <<=, >>=, +=, -=, *=, /=, %= )
 pub Expression: ast::Expression = {
-    FunctionCallExpression,
     IfExpression,
     ForEachExpression,
     TernaryExpression,
@@ -481,6 +495,7 @@ Arguments: ast::Expression = {
 };
 
 Value: ast::Expression = {
+    FunctionCallExpression,
     Terminal,
     "(" <Expression> ")",
 };
@@ -587,6 +602,7 @@ extern {
         "contract" => lexer::Tok::Contract,
         "memory" => lexer::Tok::Memory,
         "storage" => lexer::Tok::Storage,
+        "returns" => lexer::Tok::Returns,
         "if" => lexer::Tok::If,
         "else" => lexer::Tok::Else,
         "for" => lexer::Tok::For,

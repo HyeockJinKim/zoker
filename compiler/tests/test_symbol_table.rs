@@ -60,9 +60,33 @@ fn test_undeclared_used_expression2() {
 }
 
 #[test]
-fn test_symbol_table_function_call() {
+fn test_symbol_table_function_call1() {
     let num = parser::parse_program(
         "contract A { function f() { uint a = 3; g(3); } function g(uint a) {} }",
+    )
+    .unwrap();
+    let table = symbol_table::make_symbol_tables(&num);
+    assert!(table.is_ok());
+    let table = table.unwrap();
+    assert_eq!(table.name, String::from("#Global"));
+    assert_eq!(table.sub_tables.len(), 1);
+    assert_eq!(table.sub_tables[0].sub_tables.len(), 2);
+    let a = Symbol {
+        name: "a".to_string(),
+        symbol_type: SymbolType::Uint256,
+        data_location: SymbolLocation::Memory,
+        role: SymbolUsage::Declared,
+    };
+    assert_eq!(
+        table.sub_tables[0].sub_tables[0].symbols.get("a").unwrap(),
+        &a
+    );
+}
+
+#[test]
+fn test_symbol_table_function_call2() {
+    let num = parser::parse_program(
+        "contract A { function f() { uint a = 3; uint c = 2 + g(3); } function g(uint a) returns (uint) { a + 2 } }",
     )
     .unwrap();
     let table = symbol_table::make_symbol_tables(&num);

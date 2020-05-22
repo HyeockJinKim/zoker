@@ -68,6 +68,7 @@ pub enum Tok {
     Else,
     For,
     In,
+    Returns,
     // Mark
     LPar,
     RPar,

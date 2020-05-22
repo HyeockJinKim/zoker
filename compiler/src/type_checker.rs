@@ -68,10 +68,16 @@ impl TypePreChecker {
             ast::StatementType::FunctionStatement {
                 function_name,
                 parameters,
+                returns,
                 ..
             } => {
                 let name = function_name.node.identifier_name().unwrap();
                 let params = self.get_params(parameters)?;
+                let returns = if let Some(returns) = returns {
+                    self.get_params(returns)?
+                } else {
+                    vec![]
+                };
                 self.signatures
                     .last_mut()
                     .unwrap()
@@ -79,8 +85,7 @@ impl TypePreChecker {
                     .push(FunctionSignature {
                         name,
                         params,
-                        // TODO: should add return type check!
-                        returns: vec![],
+                        returns,
                     });
                 Ok(())
             }
@@ -108,13 +113,15 @@ impl TypePreChecker {
                 variable,
                 ..
             } => {
-                let name = variable.node.identifier_name().unwrap();
-                let var_type = get_type(variable_type);
-                self.signatures
-                    .last_mut()
-                    .unwrap()
-                    .variables
-                    .insert(name, var_type);
+                if let Some(variable) = variable {
+                    let name = variable.node.identifier_name().unwrap();
+                    let var_type = get_type(variable_type);
+                    self.signatures
+                        .last_mut()
+                        .unwrap()
+                        .variables
+                        .insert(name, var_type);
+                }
                 Ok(())
             }
             _ => Ok(()),

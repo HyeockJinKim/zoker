@@ -57,6 +57,7 @@ pub fn stmt_to_str(node: &ast::StatementType) -> PrintAST {
             function_name: id,
             parameters: params,
             statement: stmt,
+            returns: ret,
         } => {
             let name = name_from_identifier(&id).unwrap();
             let repr = String::from("[ Function Statement: ")
@@ -64,7 +65,11 @@ pub fn stmt_to_str(node: &ast::StatementType) -> PrintAST {
                 .add(" ] ");
             let parameters = expr_to_str(&params.node);
             let statement = stmt_to_str(&stmt.node);
-            let children = vec![parameters, statement];
+            let mut children = vec![parameters, statement];
+            if let Some(returns) = ret {
+                let returns = expr_to_str(&returns.node);
+                children.push(returns);
+            }
             let children_size = children.iter().fold(0, |v, child| v + child.size);
             let size = usize::max(repr.len(), children_size);
 
@@ -114,8 +119,10 @@ pub fn stmt_to_str(node: &ast::StatementType) -> PrintAST {
                 let data_location = specifier_to_str(location);
                 children.push(data_location);
             }
-            let variable_name = expr_to_str(&var_name.node);
-            children.push(variable_name);
+            if let Some(variable) = var_name {
+                let variable_name = expr_to_str(&variable.node);
+                children.push(variable_name);
+            }
             if let Some(default) = default_val {
                 let default_value = expr_to_str(&default.node);
                 children.push(default_value);

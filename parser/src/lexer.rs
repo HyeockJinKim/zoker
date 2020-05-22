@@ -40,6 +40,7 @@ fn get_keywords() -> HashMap<String, Tok> {
     keywords.insert(String::from("else"), Tok::Else);
     keywords.insert(String::from("for"), Tok::For);
     keywords.insert(String::from("in"), Tok::In);
+    keywords.insert(String::from("returns"), Tok::Returns);
 
     keywords
 }
