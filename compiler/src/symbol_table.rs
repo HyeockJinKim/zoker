@@ -1,6 +1,6 @@
 use crate::error::{CompileError, CompileErrorType};
 use crate::symbol::{Symbol, SymbolLocation, SymbolTableType, SymbolType, SymbolUsage};
-use crate::type_checker::get_type;
+use crate::type_checker::{get_type, type_check, ContractSignature};
 use indexmap::map::IndexMap;
 use std::ops::Add;
 use zoker_parser::ast;
@@ -9,7 +9,7 @@ use zoker_parser::location::Location;
 type SymbolTableResult = Result<SymbolType, CompileError>;
 type AnalysisResult = Result<(), CompileError>;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SymbolTable {
     pub name: String,
     pub table_type: SymbolTableType,
@@ -23,6 +23,8 @@ struct SymbolTableBuilder {
     pub for_num: Vec<u32>,
     pub compound_num: Vec<u32>,
     pub tables: Vec<SymbolTable>,
+    pub signatures: Vec<ContractSignature>,
+    pub contract_idx: usize,
 }
 
 #[derive(Default)]
@@ -42,7 +44,10 @@ impl AnalysisTable {
 }
 
 pub fn make_symbol_tables(program: &ast::Program) -> Result<SymbolTable, CompileError> {
-    SymbolTableBuilder::new().prepare_table(program)?.build()
+    let signatures = type_check(program)?;
+    SymbolTableBuilder::new(signatures)
+        .prepare_table(program)?
+        .build()
 }
 
 impl SymbolAnalyzer {
@@ -93,12 +98,14 @@ impl SymbolAnalyzer {
 }
 
 impl SymbolTableBuilder {
-    fn new() -> Self {
+    fn new(signatures: Vec<ContractSignature>) -> Self {
         SymbolTableBuilder {
             if_num: vec![],
             for_num: vec![],
             compound_num: vec![],
             tables: vec![],
+            signatures,
+            contract_idx: 1,
         }
     }
 
@@ -180,11 +187,6 @@ impl SymbolTableBuilder {
                 statement: stmt,
             } => {
                 let name = func.node.identifier_name().unwrap();
-
-                self.enter_scope(name.clone(), SymbolTableType::Function);
-                self.enter_expression(params)?;
-                self.enter_block(stmt, &SymbolLocation::Unknown)?;
-                self.exit_scope();
                 let symbol = Symbol::new(
                     name.clone(),
                     SymbolUsage::Declared,
@@ -192,7 +194,16 @@ impl SymbolTableBuilder {
                     SymbolLocation::Storage,
                 );
 
-                self.tables.last_mut().unwrap().symbols.insert(name, symbol);
+                self.tables
+                    .last_mut()
+                    .unwrap()
+                    .symbols
+                    .insert(name.clone(), symbol);
+
+                self.enter_scope(name, SymbolTableType::Function);
+                self.enter_expression(params)?;
+                self.enter_block(stmt, &SymbolLocation::Unknown)?;
+                self.exit_scope();
                 Ok(SymbolType::None)
             }
             ast::StatementType::ContractStatement {
@@ -212,6 +223,7 @@ impl SymbolTableBuilder {
                 self.enter_scope(name, SymbolTableType::Contract);
                 self.enter_statement(stmts, location)?;
                 self.exit_scope();
+                self.contract_idx += 1;
                 Ok(SymbolType::None)
             }
             ast::StatementType::InitializerStatement {
@@ -230,9 +242,15 @@ impl SymbolTableBuilder {
                     self.register_identifier(var, variable_type, location)
                 };
                 if let Some(expr) = default {
-                    self.enter_expression(expr)?;
+                    let default_value_type = self.enter_expression(expr)?;
+                    let err_msg = format!(
+                        "In Initializer statement, both init type and default value type must be of the same type. but {} type is not same as {}",
+                        typ, default_value_type
+                    );
+                    self.compare_type(typ, default_value_type, var.location, err_msg)
+                } else {
+                    Ok(typ)
                 }
-                Ok(typ)
             }
             ast::StatementType::CompoundStatement {
                 statements: stmts,
@@ -241,7 +259,7 @@ impl SymbolTableBuilder {
                 let number = self.compound_num.last_mut().unwrap();
                 *number += 1;
                 let name = String::from("#Compound_").add(&*(number).to_string());
-                self.enter_scope(name, SymbolTableType::Local);
+                self.enter_scope(name, SymbolTableType::Scope);
                 for stmt in stmts {
                     self.enter_statement(stmt, location)?;
                 }
@@ -299,6 +317,7 @@ impl SymbolTableBuilder {
                 self.compare_type(expr1_type, expr2_type, expr1.location, err_msg)
             }
             ast::ExpressionType::BinaryExpression { left, right, .. } => {
+                // TODO: Modify Binary Expression Check ( ex: 3 % 2.3 )
                 let left_type = self.enter_expression(left)?;
                 let right_type = self.enter_expression(right)?;
                 let err_msg = format!(
@@ -311,9 +330,33 @@ impl SymbolTableBuilder {
                 function_name,
                 arguments,
             } => {
-                self.enter_expression(function_name)?;
-                self.enter_expression(arguments)?;
-                // TODO: How to check function call type?
+                let name = function_name.node.identifier_name().unwrap();
+                let args = self.check_args(arguments)?;
+                // TODO: If add Another contract's function call grammar, Check another contract function.
+                let func = self.signatures[self.contract_idx]
+                    .functions
+                    .iter()
+                    .find(|x| x.name == name);
+                if let Some(function) = func {
+                    if function.params != args {
+                        return Err(CompileError {
+                            error: CompileErrorType::TypeError(format!(
+                                "Function {}'s parameter is not equal to argument.",
+                                name
+                            )),
+                            location: arguments.location,
+                        });
+                    }
+                } else {
+                    return Err(CompileError {
+                        error: CompileErrorType::SyntaxError(format!(
+                            "Function {} is not defined.",
+                            name
+                        )),
+                        location: arguments.location,
+                    });
+                }
+                // TODO: Return Type should be added.
                 Ok(SymbolType::None)
             }
             ast::ExpressionType::IfExpression {
@@ -326,12 +369,12 @@ impl SymbolTableBuilder {
                 *if_num += 1;
                 let if_name = String::from("#If_").add(&*(if_num).to_string());
                 let else_name = String::from("#Else_").add(&*(if_num).to_string());
-                self.enter_scope(if_name, SymbolTableType::Local);
+                self.enter_scope(if_name, SymbolTableType::Scope);
                 let if_type = self.enter_block(if_statement, &SymbolLocation::Unknown)?;
                 self.exit_scope();
 
                 if let Some(expr) = else_statement {
-                    self.enter_scope(else_name, SymbolTableType::Local);
+                    self.enter_scope(else_name, SymbolTableType::Scope);
                     let else_type = self.enter_block(expr, &SymbolLocation::Unknown)?;
                     self.exit_scope();
                     let err_msg = format!(
@@ -355,12 +398,12 @@ impl SymbolTableBuilder {
                 *for_num += 1;
                 let for_name = String::from("#For_").add(&*(for_num).to_string());
                 let else_name = String::from("#Else_").add(&*(for_num).to_string());
-                self.enter_scope(for_name, SymbolTableType::Local);
+                self.enter_scope(for_name, SymbolTableType::Scope);
                 self.enter_expression(iterator)?;
                 let for_type = self.enter_block(statement, &SymbolLocation::Unknown)?;
                 self.exit_scope();
                 if let Some(stmt) = else_statement {
-                    self.enter_scope(else_name, SymbolTableType::Local);
+                    self.enter_scope(else_name, SymbolTableType::Scope);
                     let else_type = self.enter_block(stmt, &SymbolLocation::Unknown)?;
                     self.exit_scope();
                     let err_msg = format!(
@@ -411,21 +454,39 @@ impl SymbolTableBuilder {
 
     fn check_identifier(&mut self, identifier: &ast::Expression) -> SymbolTableResult {
         let name = identifier.node.identifier_name().unwrap();
-        let tables = self.tables.last_mut().unwrap();
-        // TODO: Should check all scope tables.
-        if tables.symbols.get(&name).is_none() {
+        if let Some(typ) = self.find_variable_in_scope(&name) {
+            Ok(typ)
+        } else {
+            // Variables that are not in scope are designated as used and entered into the symbol table.
             let symbol = Symbol::new(
                 name.clone(),
                 SymbolUsage::Used,
                 SymbolType::Unknown,
                 SymbolLocation::Unknown,
             );
-            tables.symbols.insert(name, symbol);
-            Ok(SymbolType::Unknown)
-        } else {
-            // TODO: Check Declared Variable?
+            self.tables.last_mut().unwrap().symbols.insert(name, symbol);
             Ok(SymbolType::Unknown)
         }
+    }
+
+    fn find_variable_in_scope(&self, identifier: &str) -> Option<SymbolType> {
+        for table in self.tables.iter().rev() {
+            if let Some(symbol) = table.symbols.get(identifier) {
+                return Some(symbol.symbol_type);
+            }
+        }
+
+        None
+    }
+
+    fn check_args(&mut self, args: &ast::Expression) -> Result<Vec<SymbolType>, CompileError> {
+        let mut vec = vec![];
+        if let ast::ExpressionType::Arguments { arguments } = &args.node {
+            for argument in arguments {
+                vec.push(self.enter_expression(argument)?);
+            }
+        }
+        Ok(vec)
     }
 
     fn register_identifier(

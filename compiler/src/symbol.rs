@@ -41,12 +41,12 @@ pub enum SymbolUsage {
     Declared,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum SymbolTableType {
     Global,
     Contract,
     Function,
-    Local,
+    Scope,
 }
 
 #[derive(Debug, Clone, PartialEq)]

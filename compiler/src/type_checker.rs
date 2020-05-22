@@ -5,12 +5,14 @@ use zoker_parser::ast;
 
 type TypeResult = Result<(), CompileError>;
 
+#[derive(Debug)]
 pub struct ContractSignature {
     pub name: String,
     pub variables: IndexMap<String, SymbolType>,
     pub functions: Vec<FunctionSignature>,
 }
 
+#[derive(Debug)]
 pub struct FunctionSignature {
     pub name: String,
     pub params: Vec<SymbolType>,
@@ -45,6 +47,11 @@ impl TypePreChecker {
     }
 
     fn type_check(&mut self, program: &ast::Program) -> TypeResult {
+        self.signatures.push(ContractSignature {
+            name: String::from("#Global"),
+            variables: Default::default(),
+            functions: vec![],
+        });
         match program {
             ast::Program::GlobalStatements(stmts) => {
                 for stmt in stmts {
