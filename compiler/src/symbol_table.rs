@@ -4,6 +4,7 @@ use crate::type_checker::{get_type, type_check, ContractSignature};
 use indexmap::map::IndexMap;
 use std::ops::Add;
 use zoker_parser::ast;
+use zoker_parser::ast::StatementType;
 use zoker_parser::location::Location;
 
 type SymbolTableResult = Result<SymbolType, CompileError>;
@@ -282,6 +283,12 @@ impl SymbolTableBuilder {
             } => {
                 for member in members {
                     self.enter_statement(member, &SymbolLocation::Storage)?;
+                }
+                Ok(SymbolType::None)
+            }
+            StatementType::ReturnStatement { ret } => {
+                if let Some(returns) = ret {
+                    self.enter_expression(returns)?;
                 }
                 Ok(SymbolType::None)
             }

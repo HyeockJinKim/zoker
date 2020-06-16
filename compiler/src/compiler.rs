@@ -4,6 +4,7 @@ use indexmap::map::IndexMap;
 use std::ops::Add;
 use zoker_bytecode::bytecode::{CodeObject, Constant, NameScope, Register, RegisterType};
 use zoker_parser::ast;
+use zoker_parser::ast::StatementType;
 
 type CompileResult<T> = Result<T, CompileError>;
 
@@ -219,6 +220,12 @@ impl Compiler {
                 Ok(None)
             }
             ast::StatementType::Expression { expression: expr } => self.compile_expression(expr),
+            StatementType::ReturnStatement { ret } => {
+                if let Some(returns) = ret {
+                    self.compile_expression(returns)?;
+                }
+                Ok(None)
+            }
         }
     }
 

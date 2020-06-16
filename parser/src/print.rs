@@ -1,4 +1,5 @@
 use crate::ast;
+use crate::ast::StatementType;
 use std::ops::Add;
 
 pub struct PrintAST {
@@ -185,6 +186,25 @@ pub fn stmt_to_str(node: &ast::StatementType) -> PrintAST {
             ast
         }
         ast::StatementType::Expression { expression: expr } => expr_to_str(&expr.node),
+        StatementType::ReturnStatement { ret } => {
+            let repr = String::from("[ ReturnStatement ] ");
+            let mut children = vec![];
+            if let Some(return_value) = ret {
+                children.push(expr_to_str(&return_value.node))
+            }
+            let children_size = children.iter().fold(0, |v, child| v + child.size);
+            let size = usize::max(repr.len(), children_size);
+
+            let mut ast = PrintAST {
+                repr,
+                size,
+                left_margin: 0,
+                right_margin: 0,
+                children,
+            };
+            ast.add_children_margin();
+            ast
+        }
     }
 }
 

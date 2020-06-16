@@ -131,6 +131,15 @@ InitializerStatement: ast::Statement = {
     }
 };
 
+ReturnStatement: ast::Statement = {
+    <location:@L> "return" <expr:Expression?> => ast::Statement {
+        location,
+        node: ast::StatementType::ReturnStatement {
+            ret: expr.map_or(None, |x| Some(Box::new(x))),
+        }
+    },
+};
+
 LocationSpecifier: ast::Specifier = {
     "memory" => ast::Specifier::Memory,
     "storage" => ast::Specifier::Storage,
@@ -603,6 +612,7 @@ extern {
         "memory" => lexer::Tok::Memory,
         "storage" => lexer::Tok::Storage,
         "returns" => lexer::Tok::Returns,
+        "return" => lexer::Tok::Return,
         "if" => lexer::Tok::If,
         "else" => lexer::Tok::Else,
         "for" => lexer::Tok::For,

@@ -44,6 +44,9 @@ pub enum StatementType {
     MemberStatement {
         statements: Vec<Statement>,
     },
+    ReturnStatement {
+        ret: Option<Box<Expression>>,
+    },
     Expression {
         expression: Box<Expression>,
     },
