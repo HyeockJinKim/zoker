@@ -1,5 +1,5 @@
 use crate::error::{CompileError, CompileErrorType};
-use crate::symbol::SymbolType;
+use crate::symbol::{vec_to_type, SymbolType};
 use indexmap::map::IndexMap;
 use zoker_parser::ast;
 
@@ -15,8 +15,8 @@ pub struct ContractSignature {
 #[derive(Debug)]
 pub struct FunctionSignature {
     pub name: String,
-    pub params: Vec<SymbolType>,
-    pub returns: Vec<SymbolType>,
+    pub params: SymbolType,
+    pub returns: SymbolType,
 }
 
 struct TypePreChecker {
@@ -76,7 +76,7 @@ impl TypePreChecker {
                 let returns = if let Some(returns) = returns {
                     self.get_params(returns)?
                 } else {
-                    vec![]
+                    SymbolType::None
                 };
                 self.signatures
                     .last_mut()
@@ -128,15 +128,14 @@ impl TypePreChecker {
         }
     }
 
-    fn get_params(&self, init: &ast::Expression) -> Result<Vec<SymbolType>, CompileError> {
+    fn get_params(&self, init: &ast::Expression) -> Result<SymbolType, CompileError> {
         match &init.node {
             ast::ExpressionType::Parameters { parameters } => {
                 let mut params = vec![];
                 for param in parameters {
                     params.push(self.get_init_type(param)?);
                 }
-
-                Ok(params)
+                Ok(vec_to_type(params))
             }
             _ => Err(CompileError {
                 error: CompileErrorType::TypeError(String::from(

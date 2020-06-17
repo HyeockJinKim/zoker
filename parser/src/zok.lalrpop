@@ -89,13 +89,15 @@ Statements: Vec<ast::Statement> = {
 
 /// Description for Statement
 /// Only consumed by function
-/// InitializerStatement
 /// Compound Statement
+/// InitializerStatement
+/// ReturnStatement
 /// { Statements }
 /// Expression
 pub Statement: ast::Statement = {
     CompoundStatement,
     InitializerStatement,
+    ReturnStatement,
     <location:@L> <expr:Expression> => ast::Statement {
         location,
         node: ast::StatementType::Expression {

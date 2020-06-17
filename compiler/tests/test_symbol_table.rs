@@ -66,7 +66,7 @@ fn test_symbol_table_function_call1() {
     )
     .unwrap();
     let table = symbol_table::make_symbol_tables(&num);
-    assert!(table.is_ok());
+    // assert!(table.is_ok());
     let table = table.unwrap();
     assert_eq!(table.name, String::from("#Global"));
     assert_eq!(table.sub_tables.len(), 1);
@@ -105,4 +105,13 @@ fn test_symbol_table_function_call2() {
         table.sub_tables[0].sub_tables[0].symbols.get("a").unwrap(),
         &a
     );
+}
+
+#[test]
+fn test_symbol_table_function_call3() {
+    let num = parser::parse_program("contract A { function f() { return ; } }").unwrap();
+    let table = symbol_table::make_symbol_tables(&num);
+    assert!(table.is_ok());
+    let table = table.unwrap();
+    // TODO:
 }

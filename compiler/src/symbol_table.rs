@@ -1,5 +1,7 @@
 use crate::error::{CompileError, CompileErrorType};
-use crate::symbol::{Symbol, SymbolLocation, SymbolTableType, SymbolType, SymbolUsage};
+use crate::symbol::{
+    vec_to_type, Symbol, SymbolLocation, SymbolTableType, SymbolType, SymbolUsage,
+};
 use crate::type_checker::{get_type, type_check, ContractSignature};
 use indexmap::map::IndexMap;
 use std::ops::Add;
@@ -26,6 +28,7 @@ struct SymbolTableBuilder {
     pub tables: Vec<SymbolTable>,
     pub signatures: Vec<ContractSignature>,
     pub contract_idx: usize,
+    pub function_idx: usize,
 }
 
 #[derive(Default)]
@@ -107,6 +110,7 @@ impl SymbolTableBuilder {
             tables: vec![],
             signatures,
             contract_idx: 1,
+            function_idx: 0,
         }
     }
 
@@ -195,7 +199,6 @@ impl SymbolTableBuilder {
                     SymbolType::Function,
                     SymbolLocation::Storage,
                 );
-
                 self.tables
                     .last_mut()
                     .unwrap()
@@ -204,17 +207,30 @@ impl SymbolTableBuilder {
 
                 self.enter_scope(name, SymbolTableType::Function);
                 self.enter_expression(params)?;
-                self.enter_block(stmt, &SymbolLocation::Unknown)?;
+                let typ = self.enter_block(stmt, &SymbolLocation::Unknown)?;
+                // TODO: Check return variable name.
                 if let Some(returns) = ret {
                     self.enter_expression(returns)?;
                 }
+                if self.signatures[self.contract_idx].functions[self.function_idx].returns != typ {
+                    return Err(CompileError {
+                        error: CompileErrorType::TypeError(format!(
+                            "Function returns types and return types must be of the same type. but {:#?} type is not same as {:#?}",
+                            self.signatures[self.contract_idx].functions[self.function_idx].returns,
+                            typ,
+                        )),
+                        location: statement.location,
+                    });
+                }
                 self.exit_scope();
+                self.function_idx += 1;
                 Ok(SymbolType::None)
             }
             ast::StatementType::ContractStatement {
                 contract_name: name,
                 members: stmts,
             } => {
+                self.function_idx = 0;
                 let name = name.node.identifier_name().unwrap();
                 let tables = self.tables.last_mut().unwrap();
                 let symbol = Symbol::new(
@@ -254,7 +270,7 @@ impl SymbolTableBuilder {
                             "In Initializer statement, both init type and default value type must be of the same type. but {} type is not same as {}",
                             typ, default_value_type
                         );
-                        self.compare_type(typ, default_value_type, var.location, err_msg)?;
+                        self.compare_type(typ.clone(), default_value_type, var.location, err_msg)?;
                     }
                 }
                 Ok(typ)
@@ -287,10 +303,24 @@ impl SymbolTableBuilder {
                 Ok(SymbolType::None)
             }
             StatementType::ReturnStatement { ret } => {
-                if let Some(returns) = ret {
-                    self.enter_expression(returns)?;
+                let typ = if let Some(returns) = ret {
+                    // TODO: Should check multiple return type.
+                    self.enter_expression(returns)?
+                } else {
+                    SymbolType::None
+                };
+                if self.signatures[self.contract_idx].functions[self.function_idx].returns == typ {
+                    Ok(SymbolType::None)
+                } else {
+                    Err(CompileError {
+                        error: CompileErrorType::TypeError(format!(
+                            "Function returns types and return types must be of the same type. but {:#?} type is not same as {:#?}",
+                            self.signatures[self.contract_idx].functions[self.function_idx].returns,
+                            typ,
+                        )),
+                        location: statement.location,
+                    })
                 }
-                Ok(SymbolType::None)
             }
         }
     }
@@ -352,6 +382,7 @@ impl SymbolTableBuilder {
                     .find(|x| x.name == name);
                 if let Some(function) = func {
                     if function.params != args {
+                        println!("{:#?} {:#?}", function.params, args);
                         return Err(CompileError {
                             error: CompileErrorType::TypeError(format!(
                                 "Function {}'s parameter is not equal to argument.",
@@ -360,14 +391,7 @@ impl SymbolTableBuilder {
                             location: arguments.location,
                         });
                     }
-                    if function.returns.is_empty() {
-                        Ok(SymbolType::None)
-                    } else if function.returns.len() == 1 {
-                        Ok(function.returns[0])
-                    } else {
-                        // TODO: Multiple Returns
-                        Ok(SymbolType::None)
-                    }
+                    Ok(function.returns.clone())
                 } else {
                     Err(CompileError {
                         error: CompileErrorType::SyntaxError(format!(
@@ -397,7 +421,7 @@ impl SymbolTableBuilder {
                     let else_type = self.enter_block(expr, &SymbolLocation::Unknown)?;
                     self.exit_scope();
                     let err_msg = format!(
-                        "In if statement, both if block and else block must be of the same type., but {} type is not same as {}",
+                        "In if statement, both if block and else block must be of the same type., but {:#?} type is not same as {:#?}",
                         if_type, else_type
                     );
                     self.compare_type(if_type, else_type, if_statement.location, err_msg)
@@ -438,16 +462,18 @@ impl SymbolTableBuilder {
                 self.enter_expression(expression)
             }
             ast::ExpressionType::Parameters { parameters } => {
+                let mut params = vec![];
                 for parameter in parameters {
-                    self.enter_statement(parameter, &SymbolLocation::Unknown)?;
+                    params.push(self.enter_statement(parameter, &SymbolLocation::Unknown)?);
                 }
-                Ok(SymbolType::Parameters)
+                Ok(SymbolType::Tuple(params))
             }
             ast::ExpressionType::Arguments { arguments } => {
+                let mut args = vec![];
                 for argument in arguments {
-                    self.enter_expression(argument)?;
+                    args.push(self.enter_expression(argument)?);
                 }
-                Ok(SymbolType::Parameters)
+                Ok(SymbolType::Tuple(args))
             }
             ast::ExpressionType::Number { .. } => Ok(SymbolType::Uint256),
             ast::ExpressionType::Identifier { .. } => self.check_identifier(expression),
@@ -491,21 +517,20 @@ impl SymbolTableBuilder {
     fn find_variable_in_scope(&self, identifier: &str) -> Option<SymbolType> {
         for table in self.tables.iter().rev() {
             if let Some(symbol) = table.symbols.get(identifier) {
-                return Some(symbol.symbol_type);
+                return Some(symbol.symbol_type.clone());
             }
         }
-
         None
     }
 
-    fn check_args(&mut self, args: &ast::Expression) -> Result<Vec<SymbolType>, CompileError> {
+    fn check_args(&mut self, args: &ast::Expression) -> Result<SymbolType, CompileError> {
         let mut vec = vec![];
         if let ast::ExpressionType::Arguments { arguments } = &args.node {
             for argument in arguments {
                 vec.push(self.enter_expression(argument)?);
             }
         }
-        Ok(vec)
+        Ok(vec_to_type(vec))
     }
 
     fn register_identifier(
@@ -520,7 +545,7 @@ impl SymbolTableBuilder {
         let data_location = if loc != &SymbolLocation::Unknown {
             loc.clone()
         } else {
-            self.default_location(symbol_type)
+            self.default_location(symbol_type.clone())
         };
         let symbol = Symbol::new(
             name.clone(),
@@ -537,7 +562,7 @@ impl SymbolTableBuilder {
             SymbolType::Unknown => SymbolLocation::Unknown,
             SymbolType::Contract => SymbolLocation::Storage,
             SymbolType::Function => SymbolLocation::Storage,
-            SymbolType::Parameters => SymbolLocation::Memory,
+            SymbolType::Tuple(_) => SymbolLocation::Memory,
             SymbolType::Uint256 => SymbolLocation::Memory,
             SymbolType::Int256 => SymbolLocation::Memory,
             SymbolType::String => SymbolLocation::Storage,
