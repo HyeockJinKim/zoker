@@ -96,6 +96,9 @@ pub enum ExpressionType {
     Arguments {
         arguments: Vec<Expression>,
     },
+    Tuple {
+        items: Vec<Option<Expression>>,
+    },
     Number {
         value: BigUint,
     },

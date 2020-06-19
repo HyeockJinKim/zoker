@@ -4,7 +4,7 @@ use indexmap::map::IndexMap;
 use std::ops::Add;
 use zoker_bytecode::bytecode::{CodeObject, Constant, NameScope, Register, RegisterType};
 use zoker_parser::ast;
-use zoker_parser::ast::StatementType;
+use zoker_parser::ast::{ExpressionType, StatementType};
 
 type CompileResult<T> = Result<T, CompileError>;
 
@@ -379,6 +379,10 @@ impl Compiler {
                     }
                 }
                 Ok(reg)
+            }
+            ExpressionType::Tuple { items: _ } => {
+                // TODO: Symbol Table Check Tuple
+                Ok(None)
             }
         }
     }

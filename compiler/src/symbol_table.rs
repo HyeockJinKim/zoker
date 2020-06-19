@@ -6,7 +6,7 @@ use crate::type_checker::{get_type, type_check, ContractSignature};
 use indexmap::map::IndexMap;
 use std::ops::Add;
 use zoker_parser::ast;
-use zoker_parser::ast::StatementType;
+use zoker_parser::ast::{ExpressionType, StatementType};
 use zoker_parser::location::Location;
 
 type SymbolTableResult = Result<SymbolType, CompileError>;
@@ -212,10 +212,13 @@ impl SymbolTableBuilder {
                 if let Some(returns) = ret {
                     self.enter_expression(returns)?;
                 }
-                if self.signatures[self.contract_idx].functions[self.function_idx].returns != typ {
+                if typ != SymbolType::None
+                    && self.signatures[self.contract_idx].functions[self.function_idx].returns
+                        != typ
+                {
                     return Err(CompileError {
                         error: CompileErrorType::TypeError(format!(
-                            "Function returns types and return types must be of the same type. but {:#?} type is not same as {:#?}",
+                            "Function return types and types of return variables must be of the same type. but {:?} type is not same as {:?}",
                             self.signatures[self.contract_idx].functions[self.function_idx].returns,
                             typ,
                         )),
@@ -314,7 +317,7 @@ impl SymbolTableBuilder {
                 } else {
                     Err(CompileError {
                         error: CompileErrorType::TypeError(format!(
-                            "Function returns types and return types must be of the same type. but {:#?} type is not same as {:#?}",
+                            "Function returns types and return types must be of the same type. but {:?} type is not same as {:?}",
                             self.signatures[self.contract_idx].functions[self.function_idx].returns,
                             typ,
                         )),
@@ -374,7 +377,7 @@ impl SymbolTableBuilder {
                 arguments,
             } => {
                 let name = function_name.node.identifier_name().unwrap();
-                let args = self.check_args(arguments)?;
+                let args = self.enter_expression(arguments)?;
                 // TODO: If add Another contract's function call grammar, Check another contract function.
                 let func = self.signatures[self.contract_idx]
                     .functions
@@ -382,7 +385,6 @@ impl SymbolTableBuilder {
                     .find(|x| x.name == name);
                 if let Some(function) = func {
                     if function.params != args {
-                        println!("{:#?} {:#?}", function.params, args);
                         return Err(CompileError {
                             error: CompileErrorType::TypeError(format!(
                                 "Function {}'s parameter is not equal to argument.",
@@ -421,7 +423,7 @@ impl SymbolTableBuilder {
                     let else_type = self.enter_block(expr, &SymbolLocation::Unknown)?;
                     self.exit_scope();
                     let err_msg = format!(
-                        "In if statement, both if block and else block must be of the same type., but {:#?} type is not same as {:#?}",
+                        "In if statement, both if block and else block must be of the same type., but {:?} type is not same as {:?}",
                         if_type, else_type
                     );
                     self.compare_type(if_type, else_type, if_statement.location, err_msg)
@@ -466,17 +468,29 @@ impl SymbolTableBuilder {
                 for parameter in parameters {
                     params.push(self.enter_statement(parameter, &SymbolLocation::Unknown)?);
                 }
-                Ok(SymbolType::Tuple(params))
+                Ok(vec_to_type(params))
             }
             ast::ExpressionType::Arguments { arguments } => {
-                let mut args = vec![];
+                let mut vec = vec![];
                 for argument in arguments {
-                    args.push(self.enter_expression(argument)?);
+                    vec.push(self.enter_expression(argument)?);
                 }
-                Ok(SymbolType::Tuple(args))
+                Ok(vec_to_type(vec))
             }
             ast::ExpressionType::Number { .. } => Ok(SymbolType::Uint256),
             ast::ExpressionType::Identifier { .. } => self.check_identifier(expression),
+            ExpressionType::Tuple { items } => {
+                let mut tuple = vec![];
+                for item in items {
+                    if let Some(expr) = item {
+                        tuple.push(self.enter_expression(expr)?);
+                    } else {
+                        tuple.push(SymbolType::None);
+                    }
+                }
+                println!("{:#?}", tuple);
+                Ok(vec_to_type(tuple))
+            }
         }
     }
 
@@ -521,16 +535,6 @@ impl SymbolTableBuilder {
             }
         }
         None
-    }
-
-    fn check_args(&mut self, args: &ast::Expression) -> Result<SymbolType, CompileError> {
-        let mut vec = vec![];
-        if let ast::ExpressionType::Arguments { arguments } = &args.node {
-            for argument in arguments {
-                vec.push(self.enter_expression(argument)?);
-            }
-        }
-        Ok(vec_to_type(vec))
     }
 
     fn register_identifier(

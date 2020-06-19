@@ -202,6 +202,7 @@ pub Expression: ast::Expression = {
     ForEachExpression,
     TernaryExpression,
     BinaryExpression,
+    Tuple,
 };
 
 FunctionCallExpression: ast::Expression = {
@@ -505,6 +506,23 @@ Arguments: ast::Expression = {
     },
 };
 
+TupleItems: Vec<Option<ast::Expression>> = {
+    <mut tuple:TupleItems> "," <expr:Expression?> => {
+        tuple.push(expr);
+        tuple
+    },
+    <expr1:Expression?> "," <expr2:Expression?> => vec![expr1, expr2],
+};
+
+Tuple: ast::Expression = {
+    <location:@L> "(" <items:TupleItems> ")" => ast::Expression {
+        location,
+            node: ast::ExpressionType::Tuple {
+            items
+        }
+    },
+}
+
 Value: ast::Expression = {
     FunctionCallExpression,
     Terminal,
@@ -544,7 +562,6 @@ Type: ast::Type = {
     "string" => ast::Type::String,
     "address" => ast::Type::Address,
 };
-
 
 // Hook external lexer:
 extern {

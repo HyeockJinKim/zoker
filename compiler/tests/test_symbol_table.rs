@@ -66,7 +66,7 @@ fn test_symbol_table_function_call1() {
     )
     .unwrap();
     let table = symbol_table::make_symbol_tables(&num);
-    // assert!(table.is_ok());
+    assert!(table.is_ok());
     let table = table.unwrap();
     assert_eq!(table.name, String::from("#Global"));
     assert_eq!(table.sub_tables.len(), 1);
@@ -112,6 +112,60 @@ fn test_symbol_table_function_call3() {
     let num = parser::parse_program("contract A { function f() { return ; } }").unwrap();
     let table = symbol_table::make_symbol_tables(&num);
     assert!(table.is_ok());
-    let table = table.unwrap();
-    // TODO:
+}
+
+#[test]
+fn test_symbol_table_function_return_type1() {
+    let num =
+        parser::parse_program("contract A { function f() returns (uint) { return ; } }").unwrap();
+    let table = symbol_table::make_symbol_tables(&num);
+    assert!(table.is_err());
+}
+
+#[test]
+fn test_symbol_table_function_return_type2() {
+    let num =
+        parser::parse_program("contract A { function f() returns () { return 3; } }").unwrap();
+    let table = symbol_table::make_symbol_tables(&num);
+    assert!(table.is_err());
+}
+
+#[test]
+fn test_symbol_table_function_return_type3() {
+    let num =
+        parser::parse_program("contract A { function f() returns (uint, uint) { return 3; } }")
+            .unwrap();
+    let table = symbol_table::make_symbol_tables(&num);
+    assert!(table.is_err());
+}
+
+#[test]
+fn test_symbol_table_function_return_type4() {
+    let num = parser::parse_program(
+        "contract A { function f() returns (uint, uint) { return (3, 4); } }",
+    )
+    .unwrap();
+    let table = symbol_table::make_symbol_tables(&num);
+    assert!(table.is_ok());
+    table.unwrap();
+}
+
+#[test]
+fn test_symbol_table_function_return_type5() {
+    let num = parser::parse_program(
+        "contract A { function f() returns (uint, string) { return (3, 4); } }",
+    )
+    .unwrap();
+    let table = symbol_table::make_symbol_tables(&num);
+    assert!(table.is_err());
+}
+
+#[test]
+fn test_symbol_table_function_return_type6() {
+    let num = parser::parse_program(
+        "contract A { function f() returns (uint, string) { string a; return (3, a); } }",
+    )
+    .unwrap();
+    let table = symbol_table::make_symbol_tables(&num);
+    assert!(table.is_ok());
 }
