@@ -13,10 +13,6 @@ macro_rules! do_lalr_parsing {
     }};
 }
 
-pub fn parse_global_statement(source: &str) -> Result<ast::Statement, ParseError> {
-    do_lalr_parsing!(source, GlobalStatementParser)
-}
-
 pub fn parse_expression(source: &str) -> Result<ast::Expression, ParseError> {
     do_lalr_parsing!(source, ExpressionParser)
 }

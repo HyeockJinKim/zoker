@@ -146,28 +146,28 @@ fn test_print_for_each_statement_ast2() {
 
 #[test]
 fn test_print_contract_statement_ast1() {
-    let stmt =
-        parser::parse_global_statement("contract Survey {\n    uint a;\n    function f() { }\n}")
-            .unwrap();
+    let program =
+        parser::parse_program("contract Survey {\n    uint a;\n    function f() { }\n}").unwrap();
 
-    let ast = print::stmt_to_str(&stmt.node);
-    assert_eq!(ast.print_ast(), "                            [ Contract Statement: Survey ]                             \n                                 [ Member Statement ]                                  \n      [ Initializer Statement ]                  [ Function Statement: f ]             \n[ type : uint256 ] [ Identifier : a ] [ Parameters Expression ] [ Compound Statement ] \n");
+    let ast = print::program_to_str(&program);
+    assert_eq!(ast.print_ast(), "                                     [ Program ]                                       \n                            [ Contract Statement: Survey ]                             \n                                 [ Member Statement ]                                  \n      [ Initializer Statement ]                  [ Function Statement: f ]             \n[ type : uint256 ] [ Identifier : a ] [ Parameters Expression ] [ Compound Statement ] \n");
 }
 
 #[test]
 fn test_print_function_statement_ast1() {
-    let stmt = parser::parse_global_statement("function two() { 3 }").unwrap();
+    let program = parser::parse_program("contract Test { function two() { 3 } }").unwrap();
 
-    let ast = print::stmt_to_str(&stmt.node);
-    assert_eq!(ast.print_ast(), "          [ Function Statement: two ]            \n[ Parameters Expression ] [ Compound Statement ] \n                              [ Number : 3 ]     \n");
+    let ast = print::program_to_str(&program);
+    assert_eq!(ast.print_ast(), "                  [ Program ]                    \n          [ Contract Statement: Test ]           \n              [ Member Statement ]               \n          [ Function Statement: two ]            \n[ Parameters Expression ] [ Compound Statement ] \n                              [ Number : 3 ]     \n");
 }
 
 #[test]
 fn test_print_function_statement_ast2() {
-    let stmt = parser::parse_global_statement("function plus(uint i, int j) { i + j }").unwrap();
+    let program =
+        parser::parse_program("contract Test { function plus(uint i, int j) { i + j } }").unwrap();
 
-    let ast = print::stmt_to_str(&stmt.node);
-    assert_eq!(ast.print_ast(), "                                                 [ Function Statement: plus ]                                                  \n                        [ Parameters Expression ]                                        [ Compound Statement ]                \n      [ Initializer Statement ]            [ Initializer Statement ]                      [ BinaryExpression ]                 \n[ type : uint256 ] [ Identifier : i ] [ type : int256 ] [ Identifier : j ] [ Identifier : i ] [ binop : + ] [ Identifier : j ] \n");
+    let ast = print::program_to_str(&program);
+    assert_eq!(ast.print_ast(), "                                                         [ Program ]                                                           \n                                                 [ Contract Statement: Test ]                                                  \n                                                     [ Member Statement ]                                                      \n                                                 [ Function Statement: plus ]                                                  \n                        [ Parameters Expression ]                                        [ Compound Statement ]                \n      [ Initializer Statement ]            [ Initializer Statement ]                      [ BinaryExpression ]                 \n[ type : uint256 ] [ Identifier : i ] [ type : int256 ] [ Identifier : j ] [ Identifier : i ] [ binop : + ] [ Identifier : j ] \n");
 }
 
 #[test]
@@ -199,20 +199,20 @@ fn test_print_initializer_expression_ast1() {
 
 #[test]
 fn test_print_initializer_expression_ast2() {
-    let stmt = parser::parse_program("uint i;").unwrap();
+    let stmt = parser::parse_program("contract Test { uint i; }").unwrap();
     let ast = print::program_to_str(&stmt);
     assert_eq!(
         ast.print_ast(),
-        "             [ Program ]              \n      [ Initializer Statement ]       \n[ type : uint256 ] [ Identifier : i ] \n"
+        "             [ Program ]              \n    [ Contract Statement: Test ]      \n        [ Member Statement ]          \n      [ Initializer Statement ]       \n[ type : uint256 ] [ Identifier : i ] \n"
     );
 }
 
 #[test]
 fn test_print_program_ast1() {
-    let stmt = parser::parse_program("uint i;\nuint a = 3;").unwrap();
+    let stmt = parser::parse_program("contract Test { uint i;\nuint a = 3; }").unwrap();
     let ast = print::program_to_str(&stmt);
     assert_eq!(
         ast.print_ast(),
-        "                                       [ Program ]                                         \n      [ Initializer Statement ]                    [ Initializer Statement ]               \n[ type : uint256 ] [ Identifier : i ] [ type : uint256 ] [ Identifier : a ] [ Number : 3 ] \n"
+        "                                       [ Program ]                                         \n                               [ Contract Statement: Test ]                                \n                                   [ Member Statement ]                                    \n      [ Initializer Statement ]                    [ Initializer Statement ]               \n[ type : uint256 ] [ Identifier : i ] [ type : uint256 ] [ Identifier : a ] [ Number : 3 ] \n"
     );
 }

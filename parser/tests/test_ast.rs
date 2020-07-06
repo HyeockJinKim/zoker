@@ -99,7 +99,7 @@ fn test_arithmetic_expression_ast2() {
 
 #[test]
 fn test_lexer() {
-    let source = "uint i = 3;";
+    let source = "contract Test { uint i = 3; }";
     let res = parser::parse_program(source);
     assert!(res.is_ok());
 }

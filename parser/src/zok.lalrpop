@@ -14,23 +14,11 @@ pub Program: ast::Program = {
 };
 
 GlobalStatements: Vec<ast::Statement> = {
-    <mut stmts:GlobalStatements> <stmt:GlobalStatement> => {
+    <mut stmts:GlobalStatements> <stmt:ContractStatement> => {
         stmts.push(stmt);
         stmts
     },
-    <stmt:GlobalStatement> => vec![stmt]
-};
-
-pub GlobalStatement: ast::Statement = {
-    <location:@L> <expr:Expression> ";" => ast::Statement {
-        location,
-        node: ast::StatementType::Expression {
-            expression: Box::new(expr),
-        },
-    },
-    ContractStatement,
-    <stmt:InitializerStatement> ";" => stmt,
-    FunctionStatement,
+    <stmt:ContractStatement> => vec![stmt]
 };
 
 ContractStatement: ast::Statement = {

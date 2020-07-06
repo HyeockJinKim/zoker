@@ -7,38 +7,39 @@ use zoker_parser::parser;
 
 #[test]
 fn test_symbol_table_uint_expression() {
-    let num = parser::parse_program("uint a = 3; uint b; uint c = a + b;").unwrap();
+    let num =
+        parser::parse_program("contract Test { uint a = 3; uint b; uint c = a + b; }").unwrap();
     let table = symbol_table::make_symbol_tables(&num);
     assert!(table.is_ok());
     let table = table.unwrap();
     assert_eq!(table.name, String::from("#Global"));
-    assert!(table.sub_tables.is_empty());
+    assert!(table.sub_tables[0].sub_tables.is_empty());
     let a = Symbol {
         name: "a".to_string(),
         symbol_type: SymbolType::Uint256,
-        data_location: SymbolLocation::Memory,
+        data_location: SymbolLocation::Storage,
         role: SymbolUsage::Declared,
     };
     let b = Symbol {
         name: "b".to_string(),
         symbol_type: SymbolType::Uint256,
-        data_location: SymbolLocation::Memory,
+        data_location: SymbolLocation::Storage,
         role: SymbolUsage::Declared,
     };
     let c = Symbol {
         name: "c".to_string(),
         symbol_type: SymbolType::Uint256,
-        data_location: SymbolLocation::Memory,
+        data_location: SymbolLocation::Storage,
         role: SymbolUsage::Declared,
     };
-    assert_eq!(table.symbols.get("a").unwrap(), &a);
-    assert_eq!(table.symbols.get("b").unwrap(), &b);
-    assert_eq!(table.symbols.get("c").unwrap(), &c);
+    assert_eq!(table.sub_tables[0].symbols.get("a").unwrap(), &a);
+    assert_eq!(table.sub_tables[0].symbols.get("b").unwrap(), &b);
+    assert_eq!(table.sub_tables[0].symbols.get("c").unwrap(), &c);
 }
 
 #[test]
 fn test_undeclared_used_expression1() {
-    let num = parser::parse_program("uint a = 3; int b; c = a + b;").unwrap();
+    let num = parser::parse_program("contract Test { uint a = 3; int b; c = a + b; }").unwrap();
     let table = symbol_table::make_symbol_tables(&num);
     assert!(table.is_err())
 }
@@ -168,4 +169,14 @@ fn test_symbol_table_function_return_type6() {
     .unwrap();
     let table = symbol_table::make_symbol_tables(&num);
     assert!(table.is_ok());
+}
+
+#[test]
+fn test_symbol_table_function_return_type7() {
+    let num = parser::parse_program(
+        "contract A { function f() returns (uint, string) { string a; return ; } }",
+    )
+    .unwrap();
+    let table = symbol_table::make_symbol_tables(&num);
+    assert!(table.is_err());
 }
