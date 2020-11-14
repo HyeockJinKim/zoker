@@ -70,6 +70,7 @@ pub enum Tok {
     In,
     Returns,
     Return,
+    Private,
     // Mark
     LPar,
     RPar,

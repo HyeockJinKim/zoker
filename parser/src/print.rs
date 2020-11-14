@@ -112,6 +112,7 @@ pub fn stmt_to_str(node: &ast::StatementType) -> PrintAST {
             data_location: loc,
             variable: var_name,
             default: default_val,
+            ..
         } => {
             let repr = String::from("[ Initializer Statement ] ");
             let variable_type = type_to_str(&var_type);
@@ -850,7 +851,7 @@ impl PrintAST {
                     }
                 }
             }
-            str.push_str("\n");
+            str.push('\n');
             if !is_empty {
                 break;
             }

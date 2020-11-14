@@ -1,13 +1,15 @@
 use zoker_parser::location::Location;
 
 #[derive(Debug, PartialEq)]
-pub struct CompileError {
-    pub error: CompileErrorType,
+pub struct RewriteError {
+    pub error: RewriteErrorType,
     pub location: Location,
 }
 
 #[derive(Debug, PartialEq)]
-pub enum CompileErrorType {
+pub enum RewriteErrorType {
     SyntaxError(String),
     TypeError(String),
+    UnsupportedError,
+    Unreachable,
 }

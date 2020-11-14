@@ -17,7 +17,7 @@ pub struct Lexer<T: Iterator<Item = char>> {
     keywords: HashMap<String, Tok>,
 }
 
-pub fn make_tokenizer<'a>(source: &'a str) -> impl Iterator<Item = LexResult> + 'a {
+pub fn make_tokenizer(source: &'_ str) -> impl Iterator<Item = LexResult> + '_ {
     Lexer::new(source.chars())
 }
 
@@ -42,6 +42,7 @@ fn get_keywords() -> HashMap<String, Tok> {
     keywords.insert(String::from("in"), Tok::In);
     keywords.insert(String::from("returns"), Tok::Returns);
     keywords.insert(String::from("return"), Tok::Return);
+    keywords.insert(String::from("private"), Tok::Private);
 
     keywords
 }

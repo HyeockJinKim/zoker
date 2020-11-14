@@ -32,6 +32,7 @@ pub enum StatementType {
     },
     InitializerStatement {
         variable_type: Type,
+        is_private: bool,
         data_location: Option<Specifier>,
         variable: Option<Box<Expression>>,
         default: Option<Box<Expression>>,
