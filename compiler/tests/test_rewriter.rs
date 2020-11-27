@@ -31,3 +31,27 @@ fn test_rewriting() {
         SymbolType::Uint256
     );
 }
+
+#[test]
+fn test_rewriting_multiple_function() {
+    let source = "contract Test {\
+           function add(private uint a, uint b) returns (uint) {\
+             return a + b + 1;\
+           }\
+           function add2(private uint a, uint b, uint c) returns (uint) {\
+             return add(add(a + b) + c);\
+           }\
+        }";
+    let res = parser::parse_program(source);
+    let program = res.unwrap();
+    let res = rewrite_program(&program);
+    assert!(res.is_ok());
+    let contracts = res.unwrap();
+    println!("{:#?}", contracts[0]);
+    assert_eq!(contracts[0].functions[0].params[0].num, 0);
+    assert_eq!(contracts[0].functions[0].params[1].num, 0);
+
+    assert_eq!(contracts[0].functions[1].params[0].num, 0);
+    assert_eq!(contracts[0].functions[1].params[1].num, 0);
+    assert_eq!(contracts[0].functions[1].params[2].num, 1);
+}

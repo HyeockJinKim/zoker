@@ -8,7 +8,7 @@ use zoker_parser::ast;
 use zoker_parser::ast::{ExpressionType, Operator, StatementType};
 use zoker_parser::location::Location;
 
-type RewriterResult<T> = Result<T, RewriteError>;
+pub type RewriterResult<T> = Result<T, RewriteError>;
 
 pub fn rewrite_program(ast: &ast::Program) -> RewriterResult<Vec<Contract>> {
     let mut rewriter = Rewriter::new();
@@ -92,6 +92,7 @@ impl Rewriter {
                 statement,
                 returns,
             } => {
+                self.context = RewriterContext::new();
                 let name = function_name.node.identifier_name().unwrap();
                 let params = self.compile_param_symbols(parameters)?;
                 let ret = if let Some(return_type) = returns {
