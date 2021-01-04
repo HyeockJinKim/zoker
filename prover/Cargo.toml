@@ -1,0 +1,11 @@
+[package]
+name = "zoker-prover"
+version = "0.1.0"
+description = "Zoker prover for using zero-knowledge in blockchain"
+authors = ["HyeockJin Kim <kherootz@gmail.com>"]
+edition = "2018"
+repository = "https://github.com/HyeockJinKim/zoker"
+license = "MIT"
+
+[dependencies]
+rust-crypto = "0.2.36"

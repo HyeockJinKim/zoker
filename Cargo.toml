@@ -1,17 +1,18 @@
 [package]
 name = "zoker"
 version = "0.1.0"
-authors = ["HyeockJinKim <kherootz@gmail.com>"]
+authors = ["HyeockJin Kim <kherootz@gmail.com>"]
 edition = "2018"
 repository = "https://github.com/HyeockJinKim/zoker"
 license = "MIT"
 
 [workspace]
-members = [".", "parser", "compiler"]
+members = [".", "parser", "compiler", "prover"]
 
 [dependencies]
 zoker-compiler = {path = "compiler", version = "0.1.0"}
 zoker-parser = {path = "parser", version = "0.1.0"}
+zoker-prover = {path = "prover", version = "0.1.0"}
 
 [[bin]]
 name = "rustpython"
