@@ -35,8 +35,8 @@ pub struct IKosView {
 pub struct IKosContext {
     ikos_view: IKosView,
     randomness: Vec<u32>,
-    used_rand_ctr: u32,
-    out_view_ctr32: u32,
+    used_rand_ctr: usize,
+    out_view_ctr32: usize,
     is_verify_mode: bool,
 }
 
@@ -64,8 +64,8 @@ fn generate_all_randomness(rand_len: usize) -> Vec<u32> {
     vec![0; len]
 }
 
-fn get_next_random_from_context(ctx: &mut IKosContext) -> IKosResult<u32> {
-    if ctx.randomness.len() as u32 <= ctx.used_rand_ctr {
+pub fn get_next_random_from_context(ctx: &mut IKosContext) -> IKosResult<u32> {
+    if ctx.randomness.len() <= ctx.used_rand_ctr {
         return Err(IKosError {
             error: String::from("All pre-generated randomness are exhausted!"),
         });
@@ -405,7 +405,7 @@ impl IKosVariable4V {
         } else {
             // Non verify mode
             self.value[0] = out;
-            self.value[1] = self.inst_random[self.inst_random[0]];
+            self.value[1] = self.inst_random[self.inst_random[0] as usize];
             self.inst_random[0] += 1;
 
             for i in 0..3 {
@@ -486,7 +486,7 @@ impl IKosVariable4V {
             }
         } else {
             // Non verify mode
-            out[1] = self.inst_random[self.inst_random[0]];
+            out[1] = self.inst_random[self.inst_random[0] as usize];
             self.inst_random[0] += 1;
             set_bit!(out[1], 0, 0);
 
