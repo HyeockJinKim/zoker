@@ -27,13 +27,13 @@ pub struct IKosError {
 #[derive(Clone, Debug, PartialEq)]
 pub struct IKosView {
     rand_tape_seed: Vec<u8>,
-    in_data: Vec<u8>,
-    out_data32: Vec<u32>,
+    pub in_data: Vec<u32>,
+    pub out_data32: Vec<u32>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct IKosContext {
-    ikos_view: IKosView,
+    pub ikos_view: IKosView,
     randomness: Vec<u32>,
     used_rand_ctr: usize,
     out_view_ctr32: usize,
@@ -42,7 +42,7 @@ pub struct IKosContext {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct IKosVariable4P {
-    value: Vec<u32>,
+    pub value: Vec<u32>,
     ctx: Vec<IKosContext>,
 }
 
@@ -97,7 +97,7 @@ impl IKosContext {
         }
     }
 
-    fn commit_ikos_context(&mut self) -> Vec<u8> {
+    pub fn commit_ikos_context(&mut self) -> Vec<u8> {
         let mut sha = Sha256::new();
         sha.input(&self.ikos_view.rand_tape_seed);
         if !self.ikos_view.out_data32.is_empty() {
