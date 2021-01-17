@@ -1,4 +1,4 @@
-use crate::symbol::{Contract, Function};
+// use crate::symbol::{Contract, Function};
 
 // pub fn rewrite_prover(contracts: Vec<Contract>) -> RewriterResult<Vec<Contract>> {
 //     let mut rewriter = Rewriter::new();
@@ -6,6 +6,6 @@ use crate::symbol::{Contract, Function};
 //     Ok(rewriter.contracts)
 // }
 
-fn rewrite_contract(contract: Contract) {}
+// fn rewrite_contract(contract: Contract) {}
 
-fn rewrite_function(function: Function) {}
+// fn rewrite_function(function: Function) {}

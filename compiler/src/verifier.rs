@@ -1,4 +1,4 @@
-use crate::symbol::{symbol_to_string, Contract, Function, Operation, OperationType};
+/*use crate::symbol::{symbol_to_string, Contract, Function, Operation, OperationType};
 
 // pub fn rewrite_verifier(contracts: Vec<Contract>) -> RewriterResult<()> {
 //     let mut verifier = Verifier::new();
@@ -37,9 +37,9 @@ impl Verifier {
         self.write_line("function _");
         self.write(function.name.as_str());
         self.write("(");
-        for param in &function.params {
-            // TODO: MUST CONSUME ZKP PROOF.
-        }
+        // for param in &function.params {
+        //     TODO: MUST CONSUME ZKP PROOF.
+        // }
         self.write(") returns (");
         for ret in &function.returns {
             self.write(symbol_to_string(&ret.symbol_type));
@@ -82,17 +82,13 @@ impl Verifier {
                 self.write(" = ");
                 self.rewrite_operation(right);
             }
-            OperationType::For {
-                iter,
-                vector,
-                stmts,
-            } => {
+            OperationType::For { stmts, .. } => {
                 // self.write();
                 for stmt in stmts {
                     self.rewrite_operation(stmt);
                 }
             }
-            OperationType::If { cond, stmts } => {
+            OperationType::If { cond, .. } => {
                 // TODO:
                 self.write("_if(");
                 self.rewrite_operation(cond);
@@ -100,7 +96,7 @@ impl Verifier {
                 // self.rewrite_operation(right);
                 self.write(")");
             }
-            OperationType::Else { cond, stmts } => {
+            OperationType::Else { cond, .. } => {
                 self.write("_if(not(");
                 self.rewrite_operation(cond);
                 self.write("),");
@@ -111,7 +107,7 @@ impl Verifier {
                 self.write("return ");
                 self.rewrite_operation(ret);
             }
-            OperationType::Call { func, args } => {
+            OperationType::Call { func, .. } => {
                 self.write("_");
                 self.write(func.as_str());
                 self.write("(");
@@ -141,3 +137,4 @@ impl Verifier {
         self.code.push_str(line);
     }
 }
+*/

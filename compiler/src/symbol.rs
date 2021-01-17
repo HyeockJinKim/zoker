@@ -86,6 +86,8 @@ impl Function {
             params,
             operations: vec![],
             returns,
+            private_num: 0,
+            public_num: 0,
         }
     }
 
