@@ -12,7 +12,9 @@ fn circuit(input: &[IKosVariable4P], input_pub: &[u32]) -> Vec<IKosVariable4P> {
     let a = input[0].clone();
     let out = a
         .add_op(&input[1].clone())
-        .add_op(&IKosVariable4P::new_value(input_pub[0]));
+        .add_op(&IKosVariable4P::new_value(input_pub[0]))
+        .add_op(&input[2].clone())
+        .add_op(&input[3].clone());
     vec![out]
 }
 
@@ -24,92 +26,87 @@ fn circuit_verifying(
     let out = a
         .clone()
         .add_op(&input[1].clone())?
-        .add_op(&IKosVariable4V::new_value(input_pub[0]))?;
+        .add_op(&IKosVariable4V::new_value(input_pub[0]))?
+        .add_op(&input[2].clone())?
+        .add_op(&input[3].clone())?;
     Ok(vec![out])
 }
 
 #[test]
 fn test_prove() {
-    let zk_boo = ZkBoo::new(2, 3, 2, 32);
-    let input = vec![97, 107];
+    let zk_boo = ZkBoo::new(2, 3, 2, 64);
+    let input = vec![97, 107, 10, 2];
     let in_pub = vec![15];
-    let out = vec![97 & 107 & 15];
-    let res = zk_boo.prove(ProvingProof::new(input, in_pub, out, circuit));
+    let res = zk_boo.prove(ProvingProof::new(input, in_pub, 1, circuit));
     assert!(res.is_ok())
 }
 
 #[test]
 fn test_proving_challenge() {
-    let zk_boo = ZkBoo::new(2, 3, 2, 32);
-    let input = vec![97, 100];
+    let zk_boo = ZkBoo::new(2, 3, 2, 64);
+    let input = vec![97, 107, 10, 2];
     let in_pub = vec![15];
-    let out = vec![97 + 100 + 100];
-    let res = zk_boo.prove(ProvingProof::new(input, in_pub, out, circuit));
-    let challenge = ZkBoo::query_random_oracle(&res.unwrap());
-    assert_eq!(
-        challenge,
-        vec![
-            100, 51, 101, 100, 55, 101, 54, 51, 50, 51, 50, 49, 54, 100, 56, 50, 57, 99, 99, 51,
-            100, 100, 55, 52, 52, 100, 99, 49, 52, 56, 51, 102, 54, 51, 55, 98, 101, 53, 57, 57,
-            52, 51, 49, 49, 56, 48, 54, 99, 48, 51, 57, 54, 51, 101, 56, 54, 51, 53, 54, 55, 57,
-            101, 48, 99
-        ]
+    let res = zk_boo
+        .prove(ProvingProof::new(input, in_pub, 1, circuit))
+        .unwrap();
+    let challenge = ZkBoo::query_random_oracle(
+        res.input_len,
+        res.output_len,
+        &res.out_data,
+        &res.three_views,
     );
+    assert_eq!(challenge.len(), 64);
 }
 
 #[test]
 fn test_proving_build() {
-    let zk_boo = ZkBoo::new(2, 3, 2, 32);
-    let input = vec![1, 3];
+    let zk_boo = ZkBoo::new(2, 3, 2, 64);
+    let input = vec![1, 2, 3, 4];
     let in_pub = vec![5];
-    let out = vec![1 + 3 + 5];
     let mut res = zk_boo
-        .prove(ProvingProof::new(input, in_pub, out, circuit))
+        .prove(ProvingProof::new(input, in_pub, 1, circuit))
         .unwrap();
-    let challenge = ZkBoo::query_random_oracle(&res);
-    let response = zk_boo.build_response(&res.views, &challenge);
-    assert!(response.is_ok());
-    let optimized = zk_boo.rebuild_proof(&mut res, &challenge);
-    assert_eq!(
-        optimized,
-        vec![
-            48, 99, 100, 99, 56, 50, 98, 51, 49, 51, 50, 100, 101, 54, 50, 98, 52, 50, 48, 102, 99,
-            49, 97, 50, 53, 52, 57, 55, 98, 98, 55, 56, 49, 48, 98, 99, 55, 50, 100, 101, 100, 54,
-            101, 55, 56, 54, 99, 55, 52, 49, 97, 50, 56, 98, 99, 98, 49, 48, 98, 57, 56, 98, 57,
-            101, 102, 98, 99, 100, 98, 52, 100, 102, 49, 101, 52, 54, 57, 99, 53, 102, 50, 101, 49,
-            49, 52, 99, 56, 97, 100, 100, 98, 51, 56, 53, 98, 51, 99, 51, 99, 100, 97, 102, 98, 55,
-            56, 51, 100, 98, 101, 56, 97, 57, 53, 100, 51, 97, 100, 100, 100, 49, 97, 100, 50, 48,
-            97, 100, 53, 51
-        ]
+    let challenge = ZkBoo::query_random_oracle(
+        res.input_len,
+        res.output_len,
+        &res.out_data,
+        &res.three_views,
     );
+    let two_views = zk_boo.rebuild_proof(&mut res, &challenge);
+    assert_eq!(two_views.len(), 128);
 }
 
 #[test]
 fn test_proving_verifying() {
-    let zk_boo = ZkBoo::new(2, 3, 2, 32);
-    let input = vec![97, 127];
+    let zk_boo = ZkBoo::new(2, 3, 2, 64);
+    let input = vec![97, 127, 10, 2];
     let in_pub = vec![15];
-    let out = vec![97 + 127 + 13];
+    let out = vec![97 + 127 + 15 + 10 + 2];
     let mut res = zk_boo
         .prove(ProvingProof::new(
             input.clone(),
             in_pub.clone(),
-            out.clone(),
+            out.len(),
             circuit,
         ))
         .unwrap();
-    let challenge = ZkBoo::query_random_oracle(&res);
-    let response = zk_boo.build_response(&res.views, &challenge).unwrap();
-    zk_boo.rebuild_proof(&mut res, &challenge);
-
+    // assert_eq!(res.output, out);
+    let challenge = ZkBoo::query_random_oracle(
+        res.input_len,
+        res.output_len,
+        &res.out_data,
+        &res.three_views,
+    );
+    let response = zk_boo.build_response(&res.views, &challenge);
+    let two_views = zk_boo.rebuild_proof(&mut res, &challenge);
     let res = zk_boo.verify(VerifyingProof::new(
         input.len(),
         in_pub,
         out,
         challenge,
+        two_views,
         response,
         circuit_verifying,
     ));
-
     assert!(res.unwrap());
 }

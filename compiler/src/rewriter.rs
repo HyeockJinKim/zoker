@@ -10,6 +10,16 @@ use zoker_parser::location::Location;
 
 pub type RewriterResult<T> = Result<T, RewriteError>;
 
+// abi => ?
+//
+// pub fn gen_proof(func_name: &str, zoker_file: &str, input: Vec<u32>, in_pub: Vec<u32>) -> Proof {
+//
+// }
+//
+// pub fn gen_vc(zoker_file: &str) -> String {
+//
+// }
+
 pub fn rewrite_program(ast: &ast::Program) -> RewriterResult<Vec<Contract>> {
     let mut rewriter = Rewriter::new();
     rewriter.compile_program(ast)?;
@@ -189,6 +199,7 @@ impl Rewriter {
             } => {
                 self.compile_expression(left)?;
                 let left = self.pop_operation();
+
                 self.compile_expression(right)?;
                 let right = self.pop_operation();
                 let op = match operator {

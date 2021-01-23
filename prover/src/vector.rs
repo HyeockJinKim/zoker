@@ -22,12 +22,4 @@ impl _3DVector {
     pub fn get_index(&self, d: usize, r: usize, c: usize) -> usize {
         d * self.area + self.col * r + c
     }
-
-    pub fn get_size(&self) -> usize {
-        self.depth * self.area * 4
-    }
-
-    pub fn count_elements(&self) -> usize {
-        self.depth * self.area
-    }
 }

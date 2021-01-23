@@ -15,7 +15,7 @@ fn find_shares(input: u32, ctx: Rc<RefCell<Vec<IKosContext>>>) -> IKosResult<IKo
     let shares = {
         let mut contexts = (*ctx).borrow_mut();
         let share0 = get_next_random_from_context(&mut contexts[0])?;
-        let share1 = get_next_random_from_context(&mut contexts[0])?;
+        let share1 = get_next_random_from_context(&mut contexts[1])?;
         vec![share0, share1, input ^ share0 ^ share1]
     };
 
@@ -35,6 +35,7 @@ pub struct ZkBoo {
 pub struct Proof {
     pub input_len: usize,
     pub output_len: usize,
+    pub output: Vec<u32>,
     pub out_data: Vec<u32>,
     pub three_views: Vec<u8>,
     pub views: Vec<IKosView>,
@@ -43,7 +44,7 @@ pub struct Proof {
 pub struct ProvingProof {
     input: Vec<u32>,
     input_pub: Vec<u32>,
-    output: Vec<u32>,
+    output_len: usize,
     circuit: Circuit4P,
 }
 
@@ -52,12 +53,13 @@ pub struct VerifyingProof {
     input_pub: Vec<u32>,
     output: Vec<u32>,
     challenge: Vec<u8>,
+    two_views: Vec<u8>,
     response: Vec<IKosView>,
     circuit: Circuit4V,
 }
 
 fn get_rand_tape_len(input_len: usize) -> usize {
-    (input_len + 511) / 512 * 728 * 32
+    (input_len + 511) / 512 * 728 * 64
 }
 
 impl ZkBoo {
@@ -76,12 +78,10 @@ impl ZkBoo {
     }
 
     pub fn prove(&self, proof: ProvingProof) -> IKosResult<Proof> {
-        let mut vec_view =
-            _3DVector::new(proof.output.len(), self.num_of_round, self.num_of_branch);
+        let mut vec_view = _3DVector::new(proof.output_len, self.num_of_round, self.num_of_branch);
         let mut three_views = vec![0; self.num_of_round * self.num_of_branch * self.commit_length];
         let mut views = vec![];
         let rand_tape_len = get_rand_tape_len(proof.input.len());
-
         for round in 0..self.num_of_round {
             let mut ctx = vec![];
             let mut ikos_input = vec![];
@@ -96,38 +96,42 @@ impl ZkBoo {
                 let mut contexts = (*ctx).borrow_mut();
                 contexts[2].ikos_view.in_data.push(ikos_input[i].value[2]);
             }
-
             // Circuit 실행
             let ikos_output: Vec<IKosVariable4P> = proof.run_circuit(&ikos_input, &proof.input_pub);
 
             // ikos output 저장
-            for (party, context) in (*ctx)
-                .borrow_mut()
-                .iter_mut()
-                .enumerate()
-                .take(self.num_of_branch)
-            {
+            for (party, context) in (*ctx).borrow_mut().iter_mut().enumerate() {
                 for (i, ikos) in ikos_output.iter().enumerate() {
                     let index = vec_view.get_index(i, round, party);
                     vec_view.data[index] = ikos.value[party];
                     context.ikos_view.out_data.push(ikos.value[party]);
                 }
             }
-
             // commitment
             for party in 0..self.num_of_branch {
                 let commit = (*ctx).borrow_mut()[party].commit_ikos_context();
-                for i in 0..commit.len() {
-                    three_views[round * party * commit.len() + i] = commit[i];
+                for (i, &cmt) in commit.iter().enumerate() {
+                    three_views[round * self.num_of_branch * self.commit_length
+                        + party * self.commit_length
+                        + i] = cmt;
                 }
             }
             views.extend((*ctx).borrow_mut().iter().map(|c| c.ikos_view.clone()));
         }
-        // No Check output
+        // 계산 결과 구하기
+        let mut out = vec![];
+        for i in 0..proof.output_len {
+            out.push(
+                vec_view.data[vec_view.get_index(i, 0, 0)]
+                    ^ vec_view.data[vec_view.get_index(i, 0, 1)]
+                    ^ vec_view.data[vec_view.get_index(i, 0, 2)],
+            )
+        }
         Ok(Proof::new(
             proof.input.len(),
             proof.input_pub.len(),
             vec_view.data,
+            out,
             three_views,
             views,
         ))
@@ -138,7 +142,9 @@ impl ZkBoo {
         let rand_tape_len = get_rand_tape_len(proof.input_len);
         let mut vec_view =
             _3DVector::new(proof.output.len(), self.num_of_round, self.num_of_branch);
-
+        let mut three_views = vec![0; self.num_of_round * self.num_of_branch * self.commit_length];
+        let mut three_offset = 0;
+        let mut two_offset = 0;
         for (round, &index) in index_vec.iter().enumerate().take(self.num_of_round) {
             let mut ctx = vec![];
             for party in 0..self.num_of_public_branch {
@@ -146,14 +152,34 @@ impl ZkBoo {
                     proof.response[round * self.num_of_public_branch + party].clone(),
                     rand_tape_len,
                 ));
-                if proof.response[round * self.num_of_public_branch + party]
-                    .in_data
-                    .is_empty()
-                {
+            }
+            match index_vec[round] {
+                0 => {
                     for _ in 0..proof.input_len {
-                        let data = get_next_random_from_context(&mut ctx[party])?;
-                        ctx[party].ikos_view.in_data.push(data);
+                        let data = get_next_random_from_context(&mut ctx[0])?;
+                        ctx[0].ikos_view.in_data.push(data);
+                        ctx[1].ikos_view.in_data.push(data);
                     }
+                }
+                1 => {
+                    for _ in 0..proof.input_len {
+                        let data = get_next_random_from_context(&mut ctx[1])?;
+                        ctx[0].ikos_view.in_data.push(data);
+                        ctx[1].ikos_view.in_data.push(data);
+                    }
+                }
+                2 => {
+                    for _ in 0..proof.input_len {
+                        let data = get_next_random_from_context(&mut ctx[0])?;
+                        ctx[0].ikos_view.in_data.push(data);
+                        let data = get_next_random_from_context(&mut ctx[1])?;
+                        ctx[1].ikos_view.in_data.push(data);
+                    }
+                }
+                _ => {
+                    return Err(IKosError {
+                        error: String::from("index error"),
+                    });
                 }
             }
 
@@ -168,7 +194,6 @@ impl ZkBoo {
                 }
                 ikos_input.push(IKosVariable4V::new_share(shares, Rc::clone(ctx.borrow())));
             }
-
             // rut circuit
             let ikos_out = proof.run_circuit(&ikos_input, &proof.input_pub)?;
 
@@ -193,33 +218,87 @@ impl ZkBoo {
                 }
             }
 
-            // if contexts[0].out_view_ctr != contexts[0].ikos_view.out_data.len() {
-            //     return Err(IKosError {
-            //         error: String::from("verify out_view_ctr error"),
-            //     });
-            // }
+            // construct three views
+            match index {
+                0 => {
+                    three_views[three_offset..(three_offset + self.commit_length)]
+                        .clone_from_slice(
+                            &proof.two_views[two_offset..(two_offset + self.commit_length)],
+                        );
+                    three_offset += self.commit_length;
+                    two_offset += self.commit_length;
+
+                    let commit = contexts[0].commit_ikos_context();
+                    three_views[three_offset..(three_offset + self.commit_length)]
+                        .clone_from_slice(&commit);
+                    three_offset += self.commit_length;
+
+                    let commit = contexts[1].commit_ikos_context();
+                    three_views[three_offset..(three_offset + self.commit_length)]
+                        .clone_from_slice(&commit);
+                    three_offset += self.commit_length;
+                }
+                1 => {
+                    let commit = contexts[1].commit_ikos_context();
+                    three_views[three_offset..(three_offset + self.commit_length)]
+                        .clone_from_slice(&commit);
+                    three_offset += self.commit_length;
+                    three_views[three_offset..(three_offset + self.commit_length)]
+                        .clone_from_slice(
+                            &proof.two_views[two_offset..(two_offset + self.commit_length)],
+                        );
+                    three_offset += self.commit_length;
+                    two_offset += self.commit_length;
+                    let commit = contexts[0].commit_ikos_context();
+                    three_views[three_offset..(three_offset + self.commit_length)]
+                        .clone_from_slice(&commit);
+                    three_offset += self.commit_length;
+                }
+                2 => {
+                    let commit = contexts[0].commit_ikos_context();
+                    three_views[three_offset..(three_offset + self.commit_length)]
+                        .clone_from_slice(&commit);
+                    three_offset += self.commit_length;
+                    let commit = contexts[1].commit_ikos_context();
+                    three_views[three_offset..(three_offset + self.commit_length)]
+                        .clone_from_slice(&commit);
+                    three_offset += self.commit_length;
+
+                    three_views[three_offset..(three_offset + self.commit_length)]
+                        .clone_from_slice(
+                            &proof.two_views[two_offset..(two_offset + self.commit_length)],
+                        );
+                    three_offset += self.commit_length;
+                    two_offset += self.commit_length;
+                }
+                _ => {
+                    return Err(IKosError {
+                        error: String::from("verify index error"),
+                    });
+                }
+            }
 
             // rebuild shares
             for (i, ikos) in ikos_out.iter().enumerate() {
                 let pos = vec_view.get_index(i, round, 0);
                 match index {
                     0 => {
+                        vec_view.data[pos + 1] = ikos.value[0];
+                        vec_view.data[pos + 2] = ikos.value[1];
+                        vec_view.data[pos] =
+                            proof.output[i] ^ vec_view.data[pos + 2] ^ vec_view.data[pos + 1];
+                    }
+                    1 => {
+                        vec_view.data[pos] = ikos.value[1];
+                        vec_view.data[pos + 2] = ikos.value[0];
+                        vec_view.data[pos + 1] =
+                            proof.output[i] ^ vec_view.data[pos] ^ vec_view.data[pos + 2];
+                    }
+                    2 => {
                         vec_view.data[pos] = ikos.value[0];
                         vec_view.data[pos + 1] = ikos.value[1];
                         vec_view.data[pos + 2] =
-                            proof.output[i] ^ vec_view.data[pos] ^ vec_view.data[pos + 1];
-                    }
-                    1 => {
-                        vec_view.data[pos] =
-                            proof.output[i] ^ vec_view.data[pos + 1] ^ vec_view.data[pos + 2];
-                        vec_view.data[pos + 1] = ikos.value[0];
-                        vec_view.data[pos + 2] = ikos.value[1];
-                    }
-                    2 => {
-                        vec_view.data[pos] = ikos.value[1];
-                        vec_view.data[pos + 1] =
-                            proof.output[i] ^ vec_view.data[pos + 2] ^ vec_view.data[pos];
-                        vec_view.data[pos + 2] = ikos.value[0];
+                            proof.output[i] ^ vec_view.data[pos + 1] ^ vec_view.data[pos];
                     }
                     _ => {
                         return Err(IKosError {
@@ -229,15 +308,42 @@ impl ZkBoo {
                 }
             }
         }
+        let mut out = vec![];
+        for i in 0..proof.output.len() {
+            out.push(
+                vec_view.data[vec_view.get_index(i, 0, 0)]
+                    ^ vec_view.data[vec_view.get_index(i, 0, 1)]
+                    ^ vec_view.data[vec_view.get_index(i, 0, 2)],
+            )
+        }
+
+        for (i, &cmt) in ZkBoo::query_random_oracle(
+            proof.input_len,
+            proof.output.len(),
+            &vec_view.data,
+            &three_views,
+        )
+        .iter()
+        .enumerate()
+        {
+            if proof.challenge[i] != cmt {
+                return Ok(false);
+            }
+        }
         Ok(true)
     }
 
-    pub fn query_random_oracle(proof: &Proof) -> Vec<u8> {
+    pub fn query_random_oracle(
+        input_len: usize,
+        output_len: usize,
+        out_data: &[u32],
+        three_views: &[u8],
+    ) -> Vec<u8> {
         let mut sha = Sha256::new();
-        sha.input(convert_usize_to_u8(proof.input_len).as_ref());
-        sha.input(convert_usize_to_u8(proof.output_len).as_ref());
-        sha.input(convert_vec_to_u8::<u32>(&proof.out_data).as_ref());
-        sha.input(convert_vec_to_u8::<u8>(&proof.three_views).as_ref());
+        sha.input(convert_usize_to_u8(input_len).as_ref());
+        sha.input(convert_usize_to_u8(output_len).as_ref());
+        sha.input(convert_vec_to_u8::<u32>(&out_data).as_ref());
+        sha.input(convert_vec_to_u8::<u8>(&three_views).as_ref());
         sha.result_str().as_bytes().to_vec()
     }
 
@@ -249,8 +355,8 @@ impl ZkBoo {
         }
 
         for _ in 0..self.num_of_round {
-            res.push(val % self.num_of_round);
-            val /= 3;
+            res.push(val % self.num_of_branch);
+            val /= self.num_of_branch;
         }
         res
     }
@@ -258,48 +364,36 @@ impl ZkBoo {
     fn discard_one_view(&self, three_views: &[u8], index_vec: Vec<usize>) -> Vec<u8> {
         let mut res = vec![];
         for (round, &index) in index_vec.iter().enumerate().take(self.num_of_round) {
-            for party in 0..self.num_of_branch {
-                if index != party {
-                    let offset = round * self.num_of_branch * self.commit_length
-                        + party * self.commit_length;
-                    for i in 0..self.commit_length {
-                        res.push(three_views[offset + i]);
-                    }
-                }
+            let offset =
+                round * self.num_of_branch * self.commit_length + index * self.commit_length;
+            for i in 0..self.commit_length {
+                res.push(three_views[offset + i]);
             }
         }
         res
     }
 
-    pub fn build_response(
-        &self,
-        views: &[IKosView],
-        challenge: &[u8],
-    ) -> IKosResult<Vec<IKosView>> {
+    pub fn build_response(&self, views: &[IKosView], challenge: &[u8]) -> Vec<IKosView> {
         let index_vec = self.choose_index_from_challenge(challenge);
-        match index_vec[0] {
-            0 => Ok(vec![
-                views[0].clone(),
-                views[1].clone(),
-                views[2].clone(),
-                views[3].clone(),
-            ]),
-            1 => Ok(vec![
-                views[2].clone(),
-                views[3].clone(),
-                views[4].clone(),
-                views[5].clone(),
-            ]),
-            2 => Ok(vec![
-                views[4].clone(),
-                views[5].clone(),
-                views[0].clone(),
-                views[1].clone(),
-            ]),
-            _ => Err(IKosError {
-                error: String::from("build response index error"),
-            }),
+        let mut res = vec![];
+        for (round, &index) in index_vec.iter().enumerate().take(self.num_of_round) {
+            match index {
+                0 => {
+                    res.push(views[round * self.num_of_branch + 1].clone());
+                    res.push(views[round * self.num_of_branch + 2].clone());
+                }
+                1 => {
+                    res.push(views[round * self.num_of_branch + 2].clone());
+                    res.push(views[round * self.num_of_branch].clone());
+                }
+                2 => {
+                    res.push(views[round * self.num_of_branch].clone());
+                    res.push(views[round * self.num_of_branch + 1].clone());
+                }
+                _ => {}
+            }
         }
+        res
     }
 
     pub fn rebuild_proof(&self, proof: &mut Proof, commit: &[u8]) -> Vec<u8> {
@@ -313,6 +407,7 @@ impl Proof {
         input_len: usize,
         output_len: usize,
         out_data: Vec<u32>,
+        output: Vec<u32>,
         three_views: Vec<u8>,
         views: Vec<IKosView>,
     ) -> Self {
@@ -320,6 +415,7 @@ impl Proof {
             input_len,
             output_len,
             out_data,
+            output,
             three_views,
             views,
         }
@@ -327,11 +423,16 @@ impl Proof {
 }
 
 impl ProvingProof {
-    pub fn new(input: Vec<u32>, input_pub: Vec<u32>, output: Vec<u32>, circuit: Circuit4P) -> Self {
+    pub fn new(
+        input: Vec<u32>,
+        input_pub: Vec<u32>,
+        output_len: usize,
+        circuit: Circuit4P,
+    ) -> Self {
         ProvingProof {
             input,
             input_pub,
-            output,
+            output_len,
             circuit,
         }
     }
@@ -347,6 +448,7 @@ impl VerifyingProof {
         input_pub: Vec<u32>,
         output: Vec<u32>,
         challenge: Vec<u8>,
+        two_views: Vec<u8>,
         response: Vec<IKosView>,
         circuit: Circuit4V,
     ) -> Self {
@@ -355,6 +457,7 @@ impl VerifyingProof {
             input_pub,
             output,
             challenge,
+            two_views,
             response,
             circuit,
         }

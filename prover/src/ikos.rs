@@ -1,6 +1,7 @@
 use crate::utils::convert_vec_to_u8;
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
+use rand::Rng;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -12,11 +13,11 @@ macro_rules! get_bit {
 
 macro_rules! set_bit {
     ($x: expr, $i: expr, $b: expr) => {{
-        $x = if $b & 1 != 0 {
-            $x | (1 << $i)
+        if ($b & 1) != 0 {
+            $x | ((1 as u32) << $i)
         } else {
-            $x & (!(1 << $i))
-        };
+            $x & (!((1 as u32) << $i))
+        }
     }};
 }
 
@@ -29,7 +30,7 @@ pub struct IKosError {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct IKosView {
-    rand_tape_seed: Vec<u8>,
+    pub rand_tape_seed: Vec<u8>,
     pub in_data: Vec<u32>,
     pub out_data: Vec<u32>,
 }
@@ -38,7 +39,7 @@ pub struct IKosView {
 pub struct IKosContext {
     pub ikos_view: IKosView,
     randomness: Vec<u32>,
-    used_rand_ctr: usize,
+    pub used_rand_ctr: usize,
     pub out_view_ctr: usize,
 }
 
@@ -52,18 +53,37 @@ pub struct IKosVariable4P {
 pub struct IKosVariable4V {
     pub value: Vec<u32>,
     pub ctx: Rc<RefCell<Vec<IKosContext>>>,
-    inst_random: Vec<u32>,
 }
 
 fn generate_random(num: usize) -> Vec<u8> {
-    // TODO: 랜덤을 사용해야 함
-    vec![0xAB; num]
+    let mut randoms = vec![];
+    let mut rng = rand::thread_rng();
+    for _ in 0..num {
+        randoms.push(rng.gen());
+    }
+    randoms
 }
 
-fn generate_all_randomness(rand_len: usize) -> Vec<u32> {
-    // TODO: 랜덤을 사용해야 함
-    let len = rand_len / 32;
-    vec![0xFECD1234; len]
+fn generate_all_randomness(key: &[u8], rand_len: usize) -> Vec<u32> {
+    let len = rand_len / 64;
+    let mut randoms = vec![];
+    let mut sha = Sha256::new();
+    for _ in 0..len {
+        sha.input(key);
+        let hash = sha.result_str().as_bytes().to_vec();
+        let mut v = vec![];
+        for i in 0..16 {
+            let random = (hash[4 * i] as u32) << 24
+                | (hash[4 * i + 1] as u32) << 16
+                | (hash[4 * i + 2] as u32) << 8
+                | (hash[4 * i + 3] as u32);
+            v.push(random);
+        }
+        sha = Sha256::new();
+        sha.input(&hash);
+        randoms.extend(v);
+    }
+    randoms
 }
 
 pub fn get_next_random_from_context(ctx: &mut IKosContext) -> IKosResult<u32> {
@@ -96,18 +116,21 @@ impl IKosView {
 
 impl IKosContext {
     pub fn new(rand_tape_len: usize) -> Self {
+        let ikos_view = IKosView::new();
+        let seed = ikos_view.rand_tape_seed.clone();
         IKosContext {
-            ikos_view: IKosView::new(),
-            randomness: generate_all_randomness(rand_tape_len * 8),
+            ikos_view,
+            randomness: generate_all_randomness(&seed, rand_tape_len * 8),
             used_rand_ctr: 0,
             out_view_ctr: 0,
         }
     }
 
     pub fn new_views(ikos_view: IKosView, rand_tape_len: usize) -> Self {
+        let seed = ikos_view.rand_tape_seed.clone();
         IKosContext {
             ikos_view,
-            randomness: generate_all_randomness(rand_tape_len * 8),
+            randomness: generate_all_randomness(&seed, rand_tape_len * 8),
             used_rand_ctr: 0,
             out_view_ctr: 0,
         }
@@ -249,7 +272,7 @@ impl IKosVariable4P {
                 let c = (a[j] & b[(j + 1) % 3])
                     ^ (a[(j + 1) % 3] & b[j])
                     ^ get_bit!(rand[(j + 1) % 3], i);
-                set_bit!(
+                out[j] = set_bit!(
                     out[j],
                     i + 1,
                     (c ^ (a[j] & b[j]) ^ (get_bit!(out[j], i)) ^ (get_bit!(rand[j], i)))
@@ -270,16 +293,11 @@ impl IKosVariable4V {
         IKosVariable4V {
             value: vec![value; 2],
             ctx: Rc::new(RefCell::new(vec![])),
-            inst_random: vec![],
         }
     }
 
     pub fn new_share(value: Vec<u32>, ctx: Rc<RefCell<Vec<IKosContext>>>) -> Self {
-        IKosVariable4V {
-            value,
-            ctx,
-            inst_random: vec![],
-        }
+        IKosVariable4V { value, ctx }
     }
 
     // TODO: 이 함수들은 P 에서도 사용함
@@ -428,7 +446,7 @@ impl IKosVariable4V {
                     });
                 }
             } else {
-                set_bit!(
+                out[0] = set_bit!(
                     out[0],
                     i + 1,
                     c ^ (a[0] & b[0]) ^ (get_bit!(out[0], i)) ^ (get_bit!(rand[0], i))
