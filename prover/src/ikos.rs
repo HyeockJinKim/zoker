@@ -162,10 +162,6 @@ impl IKosVariable4P {
         self.ctx.borrow().is_empty()
     }
 
-    fn copy_context(&mut self, rhs_ctx: Vec<IKosContext>) {
-        self.ctx = Rc::new(RefCell::new(rhs_ctx));
-    }
-
     pub fn negate(mut self) -> Self {
         for i in 0..3 {
             self.value[i] = !self.value[i];
@@ -174,9 +170,6 @@ impl IKosVariable4P {
     }
 
     pub fn xor(mut self, rhs: &IKosVariable4P) -> Self {
-        if self.is_empty_context() {
-            self.copy_context(rhs.ctx.borrow().clone());
-        }
         for i in 0..3 {
             self.value[i] ^= rhs.value[i];
         }
@@ -209,7 +202,7 @@ impl IKosVariable4P {
         }
 
         if self.is_empty_context() {
-            self.copy_context(rhs.ctx.borrow().clone());
+            return rhs.clone().bit_and(&self);
         }
 
         for (i, random) in rand.iter_mut().enumerate().take(3) {
@@ -234,9 +227,6 @@ impl IKosVariable4P {
     }
 
     pub fn bit_or(mut self, rhs: &IKosVariable4P) -> Self {
-        if self.is_empty_context() {
-            self.copy_context(rhs.ctx.borrow().clone());
-        }
         for i in 0..3 {
             self.value[i] |= rhs.value[i];
         }
@@ -250,6 +240,7 @@ impl IKosVariable4P {
         let mut out = vec![0; 3];
 
         if self.is_empty_context() && rhs.is_empty_context() {
+            // constant calculation
             for i in 0..3 {
                 self.value[i] += rhs.value[i];
             }
@@ -257,7 +248,7 @@ impl IKosVariable4P {
         }
 
         if self.is_empty_context() {
-            self.copy_context(rhs.ctx.borrow().clone());
+            return rhs.clone().add_op(&self);
         }
         for (i, random) in rand.iter_mut().enumerate().take(3) {
             *random = get_next_random_from_context(&mut self.ctx.borrow_mut()[i]).unwrap();
@@ -305,11 +296,6 @@ impl IKosVariable4V {
         self.ctx.borrow().is_empty()
     }
 
-    // TODO: 이 함수들은 P 에서도 사용함
-    fn copy_context(&mut self, rhs_ctx: Vec<IKosContext>) {
-        self.ctx = Rc::new(RefCell::new(rhs_ctx));
-    }
-
     pub fn negate(mut self) -> Self {
         for i in 0..2 {
             self.value[i] = !self.value[i];
@@ -318,9 +304,6 @@ impl IKosVariable4V {
     }
 
     pub fn xor(mut self, rhs: &IKosVariable4V) -> Self {
-        if self.is_empty_context() {
-            self.copy_context(rhs.ctx.borrow().clone());
-        }
         for i in 0..2 {
             self.value[i] ^= rhs.value[i];
         }
@@ -363,7 +346,7 @@ impl IKosVariable4V {
         }
 
         if self.is_empty_context() {
-            self.copy_context(rhs.ctx.borrow().clone());
+            return rhs.clone().bit_and(&self);
         }
 
         for (i, random) in rand.iter_mut().enumerate().take(2) {
@@ -395,9 +378,6 @@ impl IKosVariable4V {
     }
 
     pub fn bit_or(mut self, rhs: &IKosVariable4V) -> Self {
-        if self.is_empty_context() {
-            self.copy_context(rhs.ctx.borrow().clone());
-        }
         for i in 0..2 {
             self.value[i] |= rhs.value[i];
         }
@@ -417,7 +397,7 @@ impl IKosVariable4V {
         }
 
         if self.is_empty_context() {
-            self.copy_context(rhs.ctx.borrow().clone());
+            return rhs.clone().add_op(&self);
         }
         for (i, random) in rand.iter_mut().enumerate().take(2) {
             *random = self.get_next_random(i)?;
