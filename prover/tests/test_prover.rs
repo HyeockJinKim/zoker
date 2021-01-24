@@ -34,7 +34,7 @@ fn circuit_verifying(
 
 #[test]
 fn test_prove() {
-    let zk_boo = ZkBoo::new(2, 3, 2, 64);
+    let zk_boo = ZkBoo::new(2, 3, 2, 32);
     let input = vec![97, 107, 10, 2];
     let in_pub = vec![15];
     let res = zk_boo.prove(ProvingProof::new(input, in_pub, 1, circuit));
@@ -43,7 +43,7 @@ fn test_prove() {
 
 #[test]
 fn test_proving_challenge() {
-    let zk_boo = ZkBoo::new(2, 3, 2, 64);
+    let zk_boo = ZkBoo::new(2, 3, 2, 32);
     let input = vec![97, 107, 10, 2];
     let in_pub = vec![15];
     let res = zk_boo
@@ -55,12 +55,12 @@ fn test_proving_challenge() {
         &res.out_data,
         &res.three_views,
     );
-    assert_eq!(challenge.len(), 64);
+    assert_eq!(challenge.len(), 32);
 }
 
 #[test]
 fn test_proving_build() {
-    let zk_boo = ZkBoo::new(2, 3, 2, 64);
+    let zk_boo = ZkBoo::new(2, 3, 2, 32);
     let input = vec![1, 2, 3, 4];
     let in_pub = vec![5];
     let mut res = zk_boo
@@ -73,12 +73,12 @@ fn test_proving_build() {
         &res.three_views,
     );
     let two_views = zk_boo.rebuild_proof(&mut res, &challenge);
-    assert_eq!(two_views.len(), 128);
+    assert_eq!(two_views.len(), 64);
 }
 
 #[test]
 fn test_proving_verifying() {
-    let zk_boo = ZkBoo::new(2, 3, 2, 64);
+    let zk_boo = ZkBoo::new(2, 3, 2, 32);
     let input = vec![97, 127, 10, 2];
     let in_pub = vec![15];
     let out = vec![97 + 127 + 15 + 10 + 2];
@@ -132,7 +132,7 @@ fn circuit_for_loop_verifying(
 
 #[test]
 fn test_proving_verifying_loop() {
-    let zk_boo = ZkBoo::new(2, 3, 2, 64);
+    let zk_boo = ZkBoo::new(2, 3, 2, 32);
     let input = vec![97];
     let in_pub = vec![107];
     let out = vec![97 * 107];

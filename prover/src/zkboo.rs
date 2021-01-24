@@ -6,12 +6,12 @@ use crate::utils::{convert_usize_to_u8, convert_vec_to_u8};
 use crate::vector::_3DVector;
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
+use hex::FromHex;
 use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::rc::Rc;
 
 fn find_shares(input: u32, ctx: Rc<RefCell<Vec<IKosContext>>>) -> IKosResult<IKosVariable4P> {
-    // TODO: 원래는 input이 u8이었음
     let shares = {
         let mut contexts = (*ctx).borrow_mut();
         let share0 = get_next_random_from_context(&mut contexts[0])?;
@@ -52,14 +52,14 @@ pub struct VerifyingProof {
     input_len: usize,
     input_pub: Vec<u32>,
     output: Vec<u32>,
-    challenge: Vec<u8>,
+    challenge: [u8; 32],
     two_views: Vec<u8>,
     response: Vec<IKosView>,
     circuit: Circuit4V,
 }
 
 fn get_rand_tape_len(input_len: usize) -> usize {
-    (input_len + 511) / 512 * 728 * 64
+    (input_len + 511) / 512 * 728 * 32
 }
 
 impl ZkBoo {
@@ -138,7 +138,7 @@ impl ZkBoo {
     }
 
     pub fn verify(&self, proof: VerifyingProof) -> IKosResult<bool> {
-        let index_vec = self.choose_index_from_challenge(&*proof.challenge);
+        let index_vec = self.choose_index_from_challenge(&proof.challenge);
         let rand_tape_len = get_rand_tape_len(proof.input_len);
         let mut vec_view =
             _3DVector::new(proof.output.len(), self.num_of_round, self.num_of_branch);
@@ -338,16 +338,16 @@ impl ZkBoo {
         output_len: usize,
         out_data: &[u32],
         three_views: &[u8],
-    ) -> Vec<u8> {
+    ) -> [u8; 32] {
         let mut sha = Sha256::new();
         sha.input(convert_usize_to_u8(input_len).as_ref());
         sha.input(convert_usize_to_u8(output_len).as_ref());
         sha.input(convert_vec_to_u8::<u32>(&out_data).as_ref());
         sha.input(convert_vec_to_u8::<u8>(&three_views).as_ref());
-        sha.result_str().as_bytes().to_vec()
+        <[u8; 32]>::from_hex(sha.result_str()).unwrap()
     }
 
-    fn choose_index_from_challenge(&self, commit: &[u8]) -> Vec<usize> {
+    fn choose_index_from_challenge(&self, commit: &[u8; 32]) -> Vec<usize> {
         let mut res = vec![];
         let mut val = 0;
         for &commit in commit.iter().take(4) {
@@ -373,7 +373,7 @@ impl ZkBoo {
         res
     }
 
-    pub fn build_response(&self, views: &[IKosView], challenge: &[u8]) -> Vec<IKosView> {
+    pub fn build_response(&self, views: &[IKosView], challenge: &[u8; 32]) -> Vec<IKosView> {
         let index_vec = self.choose_index_from_challenge(challenge);
         let mut res = vec![];
         for (round, &index) in index_vec.iter().enumerate().take(self.num_of_round) {
@@ -396,7 +396,7 @@ impl ZkBoo {
         res
     }
 
-    pub fn rebuild_proof(&self, proof: &mut Proof, commit: &[u8]) -> Vec<u8> {
+    pub fn rebuild_proof(&self, proof: &mut Proof, commit: &[u8; 32]) -> Vec<u8> {
         let index_vec = self.choose_index_from_challenge(commit);
         self.discard_one_view(&proof.three_views, index_vec)
     }
@@ -447,7 +447,7 @@ impl VerifyingProof {
         input_len: usize,
         input_pub: Vec<u32>,
         output: Vec<u32>,
-        challenge: Vec<u8>,
+        challenge: [u8; 32],
         two_views: Vec<u8>,
         response: Vec<IKosView>,
         circuit: Circuit4V,

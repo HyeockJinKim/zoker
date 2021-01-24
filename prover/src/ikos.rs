@@ -1,6 +1,7 @@
 use crate::utils::convert_vec_to_u8;
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
+use hex::FromHex;
 use rand::Rng;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -65,23 +66,21 @@ fn generate_random(num: usize) -> Vec<u8> {
 }
 
 fn generate_all_randomness(key: &[u8], rand_len: usize) -> Vec<u32> {
-    let len = rand_len / 64;
+    let len = rand_len / 32;
     let mut randoms = vec![];
     let mut sha = Sha256::new();
+    sha.input(key);
     for _ in 0..len {
-        sha.input(key);
-        let hash = sha.result_str().as_bytes().to_vec();
-        let mut v = vec![];
-        for i in 0..16 {
+        let hash = <[u8; 32]>::from_hex(sha.result_str()).unwrap();
+        for i in 0..8 {
             let random = (hash[4 * i] as u32) << 24
                 | (hash[4 * i + 1] as u32) << 16
                 | (hash[4 * i + 2] as u32) << 8
                 | (hash[4 * i + 3] as u32);
-            v.push(random);
+            randoms.push(random);
         }
         sha = Sha256::new();
         sha.input(&hash);
-        randoms.extend(v);
     }
     randoms
 }
@@ -136,13 +135,13 @@ impl IKosContext {
         }
     }
 
-    pub fn commit_ikos_context(&mut self) -> Vec<u8> {
+    pub fn commit_ikos_context(&mut self) -> [u8; 32] {
         let mut sha = Sha256::new();
         sha.input(&self.ikos_view.rand_tape_seed);
         if !self.ikos_view.out_data.is_empty() {
             sha.input(convert_vec_to_u8::<u32>(&self.ikos_view.out_data).as_ref());
         }
-        sha.result_str().as_bytes().to_vec()
+        <[u8; 32]>::from_hex(sha.result_str()).unwrap()
     }
 }
 
