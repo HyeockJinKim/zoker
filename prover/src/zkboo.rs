@@ -2,7 +2,7 @@ use crate::ikos::{
     get_next_random_from_context, IKosContext, IKosError, IKosResult, IKosVariable4P,
     IKosVariable4V, IKosView,
 };
-use crate::utils::{convert_usize_to_u8, convert_vec_to_u8};
+use crate::utils::{convert_u32_to_u8, convert_usize_to_u8};
 use crate::vector::_3DVector;
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
@@ -58,10 +58,6 @@ pub struct VerifyingProof {
     circuit: Circuit4V,
 }
 
-fn get_rand_tape_len(input_len: usize) -> usize {
-    (input_len + 511) / 512 * 728 * 32
-}
-
 impl ZkBoo {
     pub fn new(
         num_of_round: usize,
@@ -81,15 +77,13 @@ impl ZkBoo {
         let mut vec_view = _3DVector::new(proof.output_len, self.num_of_round, self.num_of_branch);
         let mut three_views = vec![0; self.num_of_round * self.num_of_branch * self.commit_length];
         let mut views = vec![];
-        let rand_tape_len = get_rand_tape_len(proof.input.len());
         for round in 0..self.num_of_round {
             let mut ctx = vec![];
             let mut ikos_input = vec![];
 
             for _ in 0..self.num_of_branch {
-                ctx.push(IKosContext::new(rand_tape_len));
+                ctx.push(IKosContext::new());
             }
-
             let ctx = Rc::new(RefCell::new(ctx));
             for i in 0..proof.input.len() {
                 ikos_input.push(find_shares(proof.input[i], Rc::clone(&ctx))?);
@@ -139,7 +133,6 @@ impl ZkBoo {
 
     pub fn verify(&self, proof: VerifyingProof) -> IKosResult<bool> {
         let index_vec = self.choose_index_from_challenge(&proof.challenge);
-        let rand_tape_len = get_rand_tape_len(proof.input_len);
         let mut vec_view =
             _3DVector::new(proof.output.len(), self.num_of_round, self.num_of_branch);
         let mut three_views = vec![0; self.num_of_round * self.num_of_branch * self.commit_length];
@@ -150,7 +143,6 @@ impl ZkBoo {
             for party in 0..self.num_of_public_branch {
                 ctx.push(IKosContext::new_views(
                     proof.response[round * self.num_of_public_branch + party].clone(),
-                    rand_tape_len,
                 ));
             }
             match index_vec[round] {
@@ -158,13 +150,11 @@ impl ZkBoo {
                     for _ in 0..proof.input_len {
                         let data = get_next_random_from_context(&mut ctx[0])?;
                         ctx[0].ikos_view.in_data.push(data);
-                        ctx[1].ikos_view.in_data.push(data);
                     }
                 }
                 1 => {
                     for _ in 0..proof.input_len {
                         let data = get_next_random_from_context(&mut ctx[1])?;
-                        ctx[0].ikos_view.in_data.push(data);
                         ctx[1].ikos_view.in_data.push(data);
                     }
                 }
@@ -194,6 +184,7 @@ impl ZkBoo {
                 }
                 ikos_input.push(IKosVariable4V::new_share(shares, Rc::clone(ctx.borrow())));
             }
+
             // rut circuit
             let ikos_out = proof.run_circuit(&ikos_input, &proof.input_pub)?;
 
@@ -227,12 +218,10 @@ impl ZkBoo {
                         );
                     three_offset += self.commit_length;
                     two_offset += self.commit_length;
-
                     let commit = contexts[0].commit_ikos_context();
                     three_views[three_offset..(three_offset + self.commit_length)]
                         .clone_from_slice(&commit);
                     three_offset += self.commit_length;
-
                     let commit = contexts[1].commit_ikos_context();
                     three_views[three_offset..(three_offset + self.commit_length)]
                         .clone_from_slice(&commit);
@@ -317,15 +306,14 @@ impl ZkBoo {
             )
         }
 
-        for (i, &cmt) in ZkBoo::query_random_oracle(
+        let commit = ZkBoo::query_random_oracle(
             proof.input_len,
             proof.output.len(),
             &vec_view.data,
             &three_views,
-        )
-        .iter()
-        .enumerate()
-        {
+        );
+
+        for (i, &cmt) in commit.iter().enumerate() {
             if proof.challenge[i] != cmt {
                 return Ok(false);
             }
@@ -340,18 +328,20 @@ impl ZkBoo {
         three_views: &[u8],
     ) -> [u8; 32] {
         let mut sha = Sha256::new();
-        sha.input(convert_usize_to_u8(input_len).as_ref());
-        sha.input(convert_usize_to_u8(output_len).as_ref());
-        sha.input(convert_vec_to_u8::<u32>(&out_data).as_ref());
-        sha.input(convert_vec_to_u8::<u8>(&three_views).as_ref());
-        <[u8; 32]>::from_hex(sha.result_str()).unwrap()
+        let mut vec = convert_usize_to_u8(input_len);
+        vec.extend(convert_usize_to_u8(output_len));
+        vec.extend(convert_u32_to_u8(&out_data));
+        vec.extend(three_views);
+        sha.input(vec.as_ref());
+        let res = sha.result_str();
+        <[u8; 32]>::from_hex(res).unwrap()
     }
 
     fn choose_index_from_challenge(&self, commit: &[u8; 32]) -> Vec<usize> {
         let mut res = vec![];
         let mut val = 0;
-        for &commit in commit.iter().take(4) {
-            val = val as usize * 16 + commit as usize;
+        for &com in commit.iter().take(4) {
+            val = val as usize * 16 + com as usize;
         }
 
         for _ in 0..self.num_of_round {

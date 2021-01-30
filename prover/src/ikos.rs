@@ -1,4 +1,4 @@
-use crate::utils::convert_vec_to_u8;
+use crate::utils::convert_u32_to_u8;
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
 use hex::FromHex;
@@ -65,31 +65,25 @@ fn generate_random(num: usize) -> Vec<u8> {
     randoms
 }
 
-fn generate_all_randomness(key: &[u8], rand_len: usize) -> Vec<u32> {
-    let len = rand_len / 32;
+fn generate_randomness(key: &[u8]) -> Vec<u32> {
     let mut randoms = vec![];
     let mut sha = Sha256::new();
     sha.input(key);
-    for _ in 0..len {
-        let hash = <[u8; 32]>::from_hex(sha.result_str()).unwrap();
-        for i in 0..8 {
-            let random = (hash[4 * i] as u32) << 24
-                | (hash[4 * i + 1] as u32) << 16
-                | (hash[4 * i + 2] as u32) << 8
-                | (hash[4 * i + 3] as u32);
-            randoms.push(random);
-        }
-        sha = Sha256::new();
-        sha.input(&hash);
+    let hash = <[u8; 32]>::from_hex(sha.result_str()).unwrap();
+    for i in 0..8 {
+        let random = (hash[4 * i] as u32) << 24
+            | (hash[4 * i + 1] as u32) << 16
+            | (hash[4 * i + 2] as u32) << 8
+            | (hash[4 * i + 3] as u32);
+        randoms.push(random);
     }
     randoms
 }
 
 pub fn get_next_random_from_context(ctx: &mut IKosContext) -> IKosResult<u32> {
     if ctx.randomness.len() <= ctx.used_rand_ctr {
-        return Err(IKosError {
-            error: String::from("All pre-generated randomness are exhausted!"),
-        });
+        ctx.randomness = generate_randomness(convert_u32_to_u8(ctx.randomness.as_ref()).as_ref());
+        ctx.used_rand_ctr = 0;
     }
     let rand = ctx.randomness[ctx.used_rand_ctr as usize];
     ctx.used_rand_ctr += 1;
@@ -114,22 +108,22 @@ impl IKosView {
 }
 
 impl IKosContext {
-    pub fn new(rand_tape_len: usize) -> Self {
+    pub fn new() -> Self {
         let ikos_view = IKosView::new();
         let seed = ikos_view.rand_tape_seed.clone();
         IKosContext {
             ikos_view,
-            randomness: generate_all_randomness(&seed, rand_tape_len * 8),
+            randomness: generate_randomness(&seed),
             used_rand_ctr: 0,
             out_view_ctr: 0,
         }
     }
 
-    pub fn new_views(ikos_view: IKosView, rand_tape_len: usize) -> Self {
+    pub fn new_views(ikos_view: IKosView) -> Self {
         let seed = ikos_view.rand_tape_seed.clone();
         IKosContext {
             ikos_view,
-            randomness: generate_all_randomness(&seed, rand_tape_len * 8),
+            randomness: generate_randomness(&seed),
             used_rand_ctr: 0,
             out_view_ctr: 0,
         }
@@ -137,11 +131,11 @@ impl IKosContext {
 
     pub fn commit_ikos_context(&mut self) -> [u8; 32] {
         let mut sha = Sha256::new();
-        sha.input(&self.ikos_view.rand_tape_seed);
-        if !self.ikos_view.out_data.is_empty() {
-            sha.input(convert_vec_to_u8::<u32>(&self.ikos_view.out_data).as_ref());
-        }
-        <[u8; 32]>::from_hex(sha.result_str()).unwrap()
+        let mut vec = self.ikos_view.rand_tape_seed.clone();
+        vec.extend(convert_u32_to_u8(&*self.ikos_view.out_data.clone()));
+        sha.input(&vec);
+        let res = <[u8; 32]>::from_hex(sha.result_str()).unwrap();
+        res
     }
 }
 
@@ -327,14 +321,6 @@ impl IKosVariable4V {
         ctx[0].ikos_view.out_data.len() != ctx[1].ikos_view.out_data.len()
     }
 
-    fn get_next_random(&mut self, i: usize) -> IKosResult<u32> {
-        if i < 2 {
-            get_next_random_from_context(&mut self.ctx.borrow_mut()[i])
-        } else {
-            Ok(0)
-        }
-    }
-
     pub fn bit_and(mut self, rhs: &IKosVariable4V) -> IKosResult<Self> {
         let mut rand = vec![0; 2];
         if self.is_empty_context() && rhs.is_empty_context() {
@@ -399,9 +385,8 @@ impl IKosVariable4V {
             return rhs.clone().add_op(&self);
         }
         for (i, random) in rand.iter_mut().enumerate().take(2) {
-            *random = self.get_next_random(i)?;
+            *random = get_next_random_from_context(&mut self.ctx.borrow_mut()[i]).unwrap();
         }
-
         let required = IKosVariable4V::require_reconstruct(&self.ctx.borrow());
         for (i, out_value) in out.iter_mut().enumerate().take(2) {
             if !required || i != 0 {
@@ -438,7 +423,6 @@ impl IKosVariable4V {
         for (i, &out_value) in out.iter().enumerate().take(2) {
             self.value[i] = self.value[i] ^ rhs.value[i] ^ out_value;
         }
-
         Ok(self)
     }
 }

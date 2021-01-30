@@ -19,14 +19,14 @@ contract ZKBoo {
     }
 
     struct IKosView {
-        uint8[] rand_tape_seed;
+        bytes rand_tape_seed;
         uint32[] in_data;
         uint32[] out_data;
     }
 
     struct IKosContext {
         IKosView ikos_view;
-        uint32[] randomness;
+        uint32[8] randomness;
         uint32 used_rand_ctr;
         uint32 out_view_ctr;
     }
@@ -42,9 +42,9 @@ contract ZKBoo {
         uint32[] input_pub;
         uint32[] output;
         bytes32 challenge;
-        uint8[] two_views;
+        bytes two_views;
         IKosView[] response;
-        function(IKosVariable4V[] memory, uint32[] memory) internal view returns (IKosVariable4V[] memory) circuit;
+        function(IKosVariable4V[] memory, uint32[] memory) internal pure returns (IKosVariable4V[] memory) circuit;
     }
 
     // 3D Vector
@@ -55,45 +55,55 @@ contract ZKBoo {
     }
 
     function _3DVector_get_index(_3DVector memory self, uint d, uint r, uint c) internal pure returns (uint) {
-        return d * self.area * self.col * r + c;
+        return d * self.area + self.col * r + c;
     }
 
-    function generate_all_randomness(uint8[] memory key, uint rand_len) internal pure returns (uint32[] memory) {
-        uint len = rand_len / OZKB_COMMITMENT_VIEW_LENGTH;
-        uint32[] memory randomness = new uint32[](len);
-        bytes memory r = toBytes(sha256(abi.encodePacked(key)));
-        for (uint i = 0; i < len; i++) {
-            for (uint j = 0; j < 8; j++) {
-                randomness[8 * i + j] = toUint32(r, 8 * i);
-            }
-            r = toBytes(sha256(abi.encodePacked(r)));
+    function generate_randomness(bytes memory key) internal pure returns (uint32[8] memory) {
+        uint32[8] memory randomness;
+        bytes memory r = toBytes(sha256(key));
+        for (uint i = 0; i < 8; i++) {
+            randomness[i] = toUint32(r, 4 * i);
         }
         return randomness;
     }
 
+
     function get_next_random_from_context(IKosContext memory ctx) internal pure returns (uint32) {
-        assert(ctx.used_rand_ctr < ctx.randomness.length);
+        if (ctx.used_rand_ctr == ctx.randomness.length) {
+            bytes memory b = new bytes(32);
+            for (uint i = 0; i < 8; i++) {
+                b[i * 4] = byte(uint8(ctx.randomness[i] >> 24));
+                b[i * 4 + 1] = byte(uint8(ctx.randomness[i] >> 16));
+                b[i * 4 + 2] = byte(uint8(ctx.randomness[i] >> 8));
+                b[i * 4 + 3] = byte(uint8(ctx.randomness[i]));
+            }
+            ctx.randomness = generate_randomness(b);
+            ctx.used_rand_ctr = 0;
+        }
         uint32 rand = ctx.randomness[ctx.used_rand_ctr];
         ctx.used_rand_ctr += 1;
         return rand;
     }
 
-    function get_rand_tape_len(uint input_len) internal pure returns (uint) {
-        return (input_len + 511) / 512 * 728 * 32;
-    }
-
-    function require_reconstruct(IKosContext[OZKB_PUBLIC_BRANCHES] memory ctx) internal pure returns (bool) {
-        return ctx[0].ikos_view.out_data.length != ctx[1].ikos_view.out_data.length;
-    }
-
     // Ikos view
-    function new_views(IKosView memory ikos_view, uint rand_tape_len) internal pure returns (IKosContext memory) {
-        uint32[] memory randomness = generate_all_randomness(ikos_view.rand_tape_seed, rand_tape_len * 8);
+    function new_views(IKosView memory ikos_view) internal pure returns (IKosContext memory) {
+        uint32[8] memory randomness = generate_randomness(ikos_view.rand_tape_seed);
         return IKosContext(ikos_view, randomness, 0, 0);
     }
 
     function commit_ikos_context(IKosContext memory ctx) internal pure returns (bytes32) {
-        return sha256(abi.encodePacked(ctx.ikos_view.rand_tape_seed, ctx.ikos_view.out_data));
+        bytes memory b = new bytes(OZKB_RND_TAPE_SEED_LEN + ctx.ikos_view.out_data.length * 4);
+        for (uint i = 0; i < OZKB_RND_TAPE_SEED_LEN; ++i) {
+            b[i] = ctx.ikos_view.rand_tape_seed[i];
+        }
+        for (uint i = 0; i < ctx.ikos_view.out_data.length; i++) {
+            b[OZKB_RND_TAPE_SEED_LEN + i * 4] = byte(uint8(ctx.ikos_view.out_data[i] >> 24));
+            b[OZKB_RND_TAPE_SEED_LEN + i * 4 + 1] = byte(uint8(ctx.ikos_view.out_data[i] >> 16));
+            b[OZKB_RND_TAPE_SEED_LEN + i * 4 + 2] = byte(uint8(ctx.ikos_view.out_data[i] >> 8));
+            b[OZKB_RND_TAPE_SEED_LEN + i * 4 + 3] = byte(uint8(ctx.ikos_view.out_data[i]));
+        }
+        bytes32 s = sha256(b);
+        return s;
     }
 
     // IkosVariable for Verifier
@@ -105,12 +115,15 @@ contract ZKBoo {
         return IKosVariable4V(val, ctx, false);
     }
 
-    function IKosVariable_new_share(uint32[OZKB_PUBLIC_BRANCHES] memory value, IKosContext[OZKB_PUBLIC_BRANCHES] memory ctx) internal pure returns (IKosVariable4V memory) {
+    function IKosVariable_new_share(
+        uint32[OZKB_PUBLIC_BRANCHES] memory value,
+        IKosContext[OZKB_PUBLIC_BRANCHES] memory ctx
+    ) internal pure returns (IKosVariable4V memory) {
         return IKosVariable4V(value, ctx, true);
     }
 
     function is_empty_context(IKosVariable4V memory self) internal pure returns (bool) {
-        return self.is_full;
+        return !self.is_full;
     }
 
     function negate(IKosVariable4V memory self) internal pure returns (IKosVariable4V memory) {
@@ -121,18 +134,18 @@ contract ZKBoo {
         return IKosVariable4V(val, self.ctx, self.is_full);
     }
 
-    function _xor(IKosVariable4V memory self) internal pure returns (IKosVariable4V memory) {
+    function _xor(IKosVariable4V memory self, IKosVariable4V memory rhs) internal pure returns (IKosVariable4V memory) {
         uint32[OZKB_PUBLIC_BRANCHES] memory val;
         for (uint i = 0; i < OZKB_PUBLIC_BRANCHES; ++i) {
-            val[i] ^= self.value[i];
+            val[i] = self.value[i] ^ rhs.value[i];
         }
         return IKosVariable4V(val, self.ctx, self.is_full);
     }
 
-    function bit_or(IKosVariable4V memory self) internal pure returns (IKosVariable4V memory) {
+    function bit_or(IKosVariable4V memory self, IKosVariable4V memory rhs) internal pure returns (IKosVariable4V memory) {
         uint32[OZKB_PUBLIC_BRANCHES] memory val;
         for (uint i = 0; i < OZKB_PUBLIC_BRANCHES; ++i) {
-            val[i] |= self.value[i];
+            val[i] = self.value[i] | rhs.value[i];
         }
         return IKosVariable4V(val, self.ctx, self.is_full);
     }
@@ -153,10 +166,8 @@ contract ZKBoo {
         return IKosVariable4V(val, self.ctx, self.is_full);
     }
 
-
     function bit_and(IKosVariable4V memory self, IKosVariable4V memory rhs) internal pure returns (IKosVariable4V memory) {
         uint32[OZKB_PUBLIC_BRANCHES] memory val;
-
         if (is_empty_context(self) && is_empty_context(rhs)) {
             for (uint i = 0; i < OZKB_PUBLIC_BRANCHES; ++i) {
                 val[i] = self.value[i] & rhs.value[i];
@@ -178,12 +189,7 @@ contract ZKBoo {
         ^ rand[0]
         ^ rand[1];
 
-        if (require_reconstruct(self.ctx)) {
-            if (out != self.ctx[0].ikos_view.out_data[self.ctx[0].out_view_ctr]) {
-                revert();
-            }
-        } else {
-            // ??
+        if (out != self.ctx[0].ikos_view.out_data[self.ctx[0].out_view_ctr]) {
             revert();
         }
         val[0] = out;
@@ -201,18 +207,15 @@ contract ZKBoo {
 
     function add_op(IKosVariable4V memory self, IKosVariable4V memory rhs) internal pure returns (IKosVariable4V memory) {
         uint32[OZKB_PUBLIC_BRANCHES] memory val;
-
         if (is_empty_context(self) && is_empty_context(rhs)) {
             for (uint i = 0; i < OZKB_PUBLIC_BRANCHES; ++i) {
                 val[i] = self.value[i] + rhs.value[i];
             }
             return IKosVariable4V(val, self.ctx, self.is_full);
         }
-
         if (is_empty_context(self)) {
             return add_op(rhs, self);
         }
-
         uint32[OZKB_PUBLIC_BRANCHES] memory rand;
         uint32[OZKB_PUBLIC_BRANCHES] memory a;
         uint32[OZKB_PUBLIC_BRANCHES] memory b;
@@ -220,43 +223,27 @@ contract ZKBoo {
         for (uint i = 0; i < OZKB_PUBLIC_BRANCHES; ++i) {
             rand[i] = get_next_random_from_context(self.ctx[i]);
         }
-
-        bool required = require_reconstruct(self.ctx);
         for (uint i = 0; i < OZKB_PUBLIC_BRANCHES; ++i) {
-            if (!required || i != 0) {
-                out[i] = self.ctx[i].ikos_view.out_data[self.ctx[i].out_view_ctr];
-            }
+            out[i] = self.ctx[i].ikos_view.out_data[self.ctx[i].out_view_ctr];
             self.ctx[i].out_view_ctr += 1;
         }
         for (uint i = 0; i < 31; ++i) {
             for (uint j = 0; j < OZKB_PUBLIC_BRANCHES; ++j) {
-                a[j] = get_bit((self.value[i] ^ out[i]), i);
-                b[j] = get_bit((rhs.value[i] ^ out[i]), i);
+                a[j] = get_bit((self.value[j] ^ out[j]), i);
+                b[j] = get_bit((rhs.value[j] ^ out[j]), i);
             }
+
             uint32 c = (a[0] & b[1]) ^ (a[1] & b[0]) ^ get_bit(rand[1], i);
-            if (!required) {
-                if (c ^ (a[0] & b[0]) ^ (get_bit(out[0], i)) ^ (get_bit(rand[0], i))
-                    != get_bit(out[0], i + 1)) {
-                    revert();
-                }
-            } else {
-                uint32 temp = c ^ (a[0] & b[0]) ^ (get_bit(out[0], i)) ^ (get_bit(rand[0], i));
-                if ((temp & 1) != 0) {
-                    out[0] |= (uint32)(1 << (i + 1));
-                } else {
-                    out[0] &= (uint32)(~(1 << (i + 1)));
-                }
+            if (c ^ (a[0] & b[0]) ^ (get_bit(out[0], i)) ^ (get_bit(rand[0], i))
+                != get_bit(out[0], i + 1)) {
+                revert();
             }
-        }
-        if (required) {
-            revert();
         }
         for (uint i = 0; i < OZKB_PUBLIC_BRANCHES; ++i) {
             val[i] = self.value[i] ^ rhs.value[i] ^ out[i];
         }
         return IKosVariable4V(val, self.ctx, self.is_full);
     }
-
     // ZKBoo+
     function ZKBoo_choose_index_from_challenge(bytes32 commit) internal pure returns (uint[OZKB_NUMBER_OF_ROUNDS] memory) {
         uint[OZKB_NUMBER_OF_ROUNDS] memory res;
@@ -265,43 +252,42 @@ contract ZKBoo {
             val = val * 16 + uint8(commit[i]);
         }
         for (uint i = 0; i < OZKB_NUMBER_OF_ROUNDS; ++i) {
-            res[i] = val % OZKB_NUMBER_OF_ROUNDS;
-            val /= OZKB_NUMBER_OF_ROUNDS;
+            res[i] = val % OZKB_TOTAL_BRANCHES;
+            val /= OZKB_TOTAL_BRANCHES;
         }
         return res;
     }
 
-    function ZKBoo_verify(VerifyingProof memory proof) internal view returns (bool) {
+    function ZKBoo_verify(VerifyingProof memory proof) internal pure returns (bool) {
         uint[OZKB_NUMBER_OF_ROUNDS] memory index_vec = ZKBoo_choose_index_from_challenge(proof.challenge);
-        uint rand_tape_len = get_rand_tape_len(proof.input_len);
         _3DVector memory vec_view = _3DVector_new(proof.output.length, OZKB_NUMBER_OF_ROUNDS, OZKB_TOTAL_BRANCHES);
-        uint[OZKB_NUMBER_OF_ROUNDS * OZKB_TOTAL_BRANCHES * OZKB_COMMITMENT_VIEW_LENGTH] memory three_views;
+        uint8[OZKB_NUMBER_OF_ROUNDS * OZKB_TOTAL_BRANCHES * OZKB_COMMITMENT_VIEW_LENGTH] memory three_views;
         uint three_offset = 0;
         uint two_offset = 0;
         for (uint round = 0; round < OZKB_NUMBER_OF_ROUNDS; round++) {
             IKosContext[OZKB_PUBLIC_BRANCHES] memory ctx;
             for (uint party = 0; party < OZKB_PUBLIC_BRANCHES; ++party) {
-                ctx[party] = new_views(proof.response[round * OZKB_PUBLIC_BRANCHES + party], rand_tape_len);
-                ctx[party].ikos_view.in_data = new uint32[](proof.input_len);
+                ctx[party] = new_views(proof.response[round * OZKB_PUBLIC_BRANCHES + party]);
+                if (ctx[party].ikos_view.in_data.length == 0) {
+                    ctx[party].ikos_view.in_data = new uint32[](proof.input_len);
+                }
             }
             if (index_vec[round] == 0) {
                 for (uint i = 0; i < proof.input_len; ++i) {
                     uint32 data = get_next_random_from_context(ctx[0]);
                     ctx[0].ikos_view.in_data[i] = data;
-                    ctx[1].ikos_view.in_data[i] = data;
                 }
             } else if (index_vec[round] == 1) {
                 for (uint i = 0; i < proof.input_len; ++i) {
                     uint32 data = get_next_random_from_context(ctx[1]);
-                    ctx[0].ikos_view.in_data[i] = data;
                     ctx[1].ikos_view.in_data[i] = data;
                 }
             } else if (index_vec[round] == 2) {
                 for (uint i = 0; i < proof.input_len; ++i) {
                     uint32 data = get_next_random_from_context(ctx[0]);
                     ctx[0].ikos_view.in_data[i] = data;
-                    data = get_next_random_from_context(ctx[1]);
-                    ctx[1].ikos_view.in_data[i] = data;
+                    uint32 data2 = get_next_random_from_context(ctx[1]);
+                    ctx[1].ikos_view.in_data[i] = data2;
                 }
             } else {
                 revert();
@@ -317,15 +303,17 @@ contract ZKBoo {
             }
 
             IKosVariable4V[] memory ikos_output = proof.circuit(ikos_input, proof.input_pub);
-            for (uint i = 0; i < OZKB_PUBLIC_BRANCHES; ++i) {
+            for (uint branch = 0; branch < OZKB_PUBLIC_BRANCHES; ++branch) {
                 for (uint j = 0; j < ikos_output.length; ++j) {
-                    assert(ikos_output[j].value[i] == ctx[i].ikos_view.out_data[ctx[i].out_view_ctr]);
+                    if (ikos_output[j].value[branch] != ctx[branch].ikos_view.out_data[ctx[branch].out_view_ctr]) {
+                        revert();
+                    }
                 }
             }
 
             if (index_vec[round] == 0) {
                 for (uint i = 0; i < OZKB_COMMITMENT_VIEW_LENGTH; ++i) {
-                    three_views[three_offset + i] = proof.two_views[two_offset + i];
+                    three_views[three_offset + i] = uint8(proof.two_views[two_offset + i]);
                 }
                 three_offset += OZKB_COMMITMENT_VIEW_LENGTH;
                 two_offset += OZKB_COMMITMENT_VIEW_LENGTH;
@@ -341,17 +329,17 @@ contract ZKBoo {
                 }
                 three_offset += OZKB_COMMITMENT_VIEW_LENGTH;
             } else if (index_vec[round] == 1) {
-                bytes32 commit = commit_ikos_context(ctx[0]);
+                bytes32 commit = commit_ikos_context(ctx[1]);
                 for (uint i = 0; i < OZKB_COMMITMENT_VIEW_LENGTH; ++i) {
                     three_views[three_offset + i] = uint8(commit[i]);
                 }
                 three_offset += OZKB_COMMITMENT_VIEW_LENGTH;
                 for (uint i = 0; i < OZKB_COMMITMENT_VIEW_LENGTH; ++i) {
-                    three_views[three_offset + i] = proof.two_views[two_offset + i];
+                    three_views[three_offset + i] = uint8(proof.two_views[two_offset + i]);
                 }
                 three_offset += OZKB_COMMITMENT_VIEW_LENGTH;
                 two_offset += OZKB_COMMITMENT_VIEW_LENGTH;
-                commit = commit_ikos_context(ctx[1]);
+                commit = commit_ikos_context(ctx[0]);
                 for (uint i = 0; i < OZKB_COMMITMENT_VIEW_LENGTH; ++i) {
                     three_views[three_offset + i] = uint8(commit[i]);
                 }
@@ -368,7 +356,7 @@ contract ZKBoo {
                 }
                 three_offset += OZKB_COMMITMENT_VIEW_LENGTH;
                 for (uint i = 0; i < OZKB_COMMITMENT_VIEW_LENGTH; ++i) {
-                    three_views[three_offset + i] = proof.two_views[two_offset + i];
+                    three_views[three_offset + i] = uint8(proof.two_views[two_offset + i]);
                 }
                 three_offset += OZKB_COMMITMENT_VIEW_LENGTH;
                 two_offset += OZKB_COMMITMENT_VIEW_LENGTH;
@@ -395,34 +383,42 @@ contract ZKBoo {
                 }
             }
         }
-
-        bytes32 random_oracle = sha256(abi.encodePacked(proof.input_len, proof.output.length, vec_view.data, three_views));
-        return random_oracle == proof.challenge;
+        bytes32 random_oracle = query_random_oracle(proof.input_len, proof.output.length, vec_view.data, three_views);
+        for (uint i = 0; i < 32; ++i) {
+            if (proof.challenge[i] != random_oracle[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 
-    function _f(IKosVariable4V[] memory input, uint32[] memory input_pub) internal pure returns (IKosVariable4V[] memory) {
-        IKosVariable4V[] memory output = new IKosVariable4V[](1);
-        IKosVariable4V memory out = add_op(
-            add_op(
-                add_op(
-                    add_op(input[0], input[1]), IKosVariable_new_value(input_pub[0])
-                ),
-                input[2]
-            ),
-            input[3]);
-
-        output[0] = out;
-        return output;
-    }
-
-    function f(uint input_len,
-        uint32[] memory input_pub,
-        uint32[] memory output,
-        bytes32 challenge,
-        uint8[] memory two_views,
-        IKosView[] memory response) public view returns (uint32[] memory) {
-        assert(ZKBoo_verify(VerifyingProof(input_len, input_pub, output, challenge, two_views, response, _f)));
-        return output;
+    function query_random_oracle(
+        uint input_len,
+        uint output_len,
+        uint[] memory vec_view_data,
+        uint8[OZKB_NUMBER_OF_ROUNDS * OZKB_TOTAL_BRANCHES * OZKB_COMMITMENT_VIEW_LENGTH] memory three_views
+    ) internal pure returns (bytes32) {
+        bytes memory b = new bytes(8 + 4 * vec_view_data.length + three_views.length);
+        b[0] = byte(uint8(input_len >> 24));
+        b[1] = byte(uint8(input_len >> 16));
+        b[2] = byte(uint8(input_len >> 8));
+        b[3] = byte(uint8(input_len));
+        b[4] = byte(uint8(output_len >> 24));
+        b[5] = byte(uint8(output_len >> 16));
+        b[6] = byte(uint8(output_len >> 8));
+        b[7] = byte(uint8(output_len));
+        for (uint i = 0; i < vec_view_data.length; i++) {
+            b[8 + i * 4] = byte(uint8(vec_view_data[i] >> 24));
+            b[9 + i * 4] = byte(uint8(vec_view_data[i] >> 16));
+            b[10 + i * 4] = byte(uint8(vec_view_data[i] >> 8));
+            b[11 + i * 4] = byte(uint8(vec_view_data[i]));
+        }
+        uint sp = 8 + vec_view_data.length * 4;
+        for (uint i = 0; i < three_views.length; i++) {
+            b[sp + i] = byte(three_views[i]);
+        }
+        bytes32 s = sha256(b);
+        return s;
     }
 
     // For type
